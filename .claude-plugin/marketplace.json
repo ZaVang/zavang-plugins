@@ -1,0 +1,11 @@
+{
+  "name": "ZaVang Claude Plugins",
+  "description": "Collection of Claude Code plugins by ZaVang",
+  "plugins": [
+    {
+      "name": "claude-init",
+      "path": ".",
+      "description": "One-click project initialization with CLAUDE.md templates, directory structure, and built-in agents"
+    }
+  ]
+}
