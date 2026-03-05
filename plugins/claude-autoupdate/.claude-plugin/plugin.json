@@ -1,0 +1,11 @@
+{
+  "name": "claude-autoupdate",
+  "description": "One-click Claude Code upgrade with automatic changelog summarization and core feature deep-dives",
+  "version": "1.0.0",
+  "author": {
+    "name": "ZaVang"
+  },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT"
+}

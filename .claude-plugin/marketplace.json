@@ -9,6 +9,17 @@
   },
   "plugins": [
     {
+      "name": "claude-autoupdate",
+      "source": "./plugins/claude-autoupdate",
+      "description": "One-click Claude Code upgrade with automatic changelog summarization and core feature deep-dives",
+      "version": "1.0.0",
+      "author": {
+        "name": "ZaVang"
+      },
+      "license": "MIT",
+      "category": "development"
+    },
+    {
       "name": "claude-init",
       "source": "./plugins/claude-init",
       "description": "One-click project initialization with CLAUDE.md templates, directory structure, and built-in agents",
