@@ -1,0 +1,70 @@
+# =============================================================================
+# LLM Bridge Configuration
+# =============================================================================
+# Environment variables are resolved using ${VAR_NAME} syntax.
+# You can also specify defaults: ${VAR_NAME:-default_value}
+#
+# Place your API keys in a .env file at the project root:
+#   OPENAI_API_KEY=sk-...
+#   ANTHROPIC_API_KEY=sk-ant-...
+#   GOOGLE_API_KEY=AIza...
+# =============================================================================
+
+# Global retry settings (applied to all models unless overridden).
+retry:
+  max_retries: 3
+  base_delay: 1.0        # seconds
+  max_delay: 60.0        # seconds
+  exponential_base: 2.0
+
+# Whether to log token usage after each call.
+log_usage: true
+
+# Default model alias (used when no model is specified).
+default_model: gemini-3.1-flash-lite-preview
+
+# Model definitions — each key is an alias you can use in code.
+models:
+  # ── OpenAI ──────────────────────────────────────────────────────
+  gpt-5.1:
+    provider: openai
+    model: gpt-5.1
+    api_keys:
+      - ${OPENAI_API_KEY}
+    max_tokens: 4096
+    temperature: 0.7
+    fallback_models:
+      - gemini_flash   # fall back to Gemini if OpenAI fails
+
+  # ── Anthropic ───────────────────────────────────────────────────
+  claude-sonnet-4:
+    provider: anthropic
+    model: claude-sonnet-4
+    api_keys:
+      - ${ANTHROPIC_API_KEY}
+    max_tokens: 4096
+    temperature: 0.7
+    fallback_models:
+      - gpt4o
+
+  # ── Google Gemini (AI Studio) ───────────────────────────────────
+  gemini-3.1-flash-lite-preview:
+    provider: google
+    model: gemini-3.1-flash-lite-preview
+    api_keys:
+      - ${GOOGLE_API_KEY}
+    max_tokens: 4096
+    temperature: 0.7
+
+  # ── Vertex AI (Google Cloud) ────────────────────────────────────
+  # Uncomment and fill in your project details to use Vertex AI.
+  # gemini_vertex:
+  #   provider: vertexai
+  #   model: gemini-2.0-flash
+  #   api_keys: []      # Vertex uses ADC, no API key needed
+  #   max_tokens: 4096
+  #   temperature: 0.7
+  #   extra:
+  #     vertexai: true
+  #     project: my-gcp-project
+  #     location: us-central1
