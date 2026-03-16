@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$FILE\" == *.py ]] && [[ \"$FILE\" != */llm_bridge/* ]] && [[ \"$FILE\" != */llm_client/* ]] && [[ \"$FILE\" != */ai_client/* ]] && [[ \"$FILE\" != */llm_gateway/* ]]; then DIRECT_IMPORT=$(grep -nE '^(import openai|from openai|import anthropic|from anthropic|from google\\.generativeai|import google\\.generativeai|from google\\.genai|import google\\.genai)' \"$FILE\" 2>/dev/null); if [[ -n \"$DIRECT_IMPORT\" ]]; then echo \"[llm-bridge] WARNING: Direct LLM SDK import detected in $FILE — route calls through LLMBridge instead:\"; echo \"$DIRECT_IMPORT\"; exit 2; fi; fi"
+          },
+          {
+            "type": "command",
+            "command": "if [[ \"$FILE\" == *.py ]]; then HARDCODED_KEY=$(grep -nE '(sk-[a-zA-Z0-9]{20,}|sk-ant-[a-zA-Z0-9]{20,}|AIza[a-zA-Z0-9]{30,})' \"$FILE\" 2>/dev/null | grep -v '#'); if [[ -n \"$HARDCODED_KEY\" ]]; then echo \"[llm-bridge] WARNING: Potential hardcoded API key detected in $FILE — use environment variables or .env instead:\"; echo \"$HARDCODED_KEY\"; exit 2; fi; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

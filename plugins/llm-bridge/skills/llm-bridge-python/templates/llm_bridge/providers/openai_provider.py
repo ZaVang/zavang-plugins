@@ -96,7 +96,6 @@ class OpenAIProvider(BaseProvider):
             )
             parsed = None
             content = response.choices[0].message.content
-            content_text = response.choices[0].message.content
 
         # ── Map response ──────────────────────────────────────────
            # Finish reason
@@ -107,7 +106,7 @@ class OpenAIProvider(BaseProvider):
         return UnifiedResponse(
             provider="openai",
             model=model,
-            content=content_text,
+            content=content,
             parsed=parsed,
             thinking=None,
             usage=UsageInfo(

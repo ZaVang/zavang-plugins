@@ -1,0 +1,11 @@
+{
+  "name": "llm-bridge",
+  "description": "Generate a production-ready LLM Bridge module in any Python project. Provides unified multi-provider LLM access (OpenAI, Anthropic, Google Gemini, Vertex AI) with structured output, retry, fallback, and load balancing.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ZaVang"
+  },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT"
+}

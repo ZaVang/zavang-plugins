@@ -228,7 +228,8 @@ class LLMBridge:
 
         # Build the primary call
         primary = functools.partial(
-            self._call_model, model_cfg, messages, response_model, params, **kwargs
+            self._call_model, model_cfg, messages, response_model, params,
+            _config_alias=alias, **kwargs
         )
 
         # Build fallback callables
@@ -237,7 +238,8 @@ class LLMBridge:
             fb_cfg = self._resolve_model(fb_model_str)
             fallback_fns.append(
                 functools.partial(
-                    self._call_model, fb_cfg, messages, response_model, params, **kwargs
+                    self._call_model, fb_cfg, messages, response_model, params,
+                    _config_alias=fb_model_str, **kwargs
                 )
             )
 
@@ -326,6 +328,8 @@ class LLMBridge:
         messages: list[dict],
         response_model: Optional[Type[BaseModel]],
         params: Optional[ChatParameters],
+        *,
+        _config_alias: Optional[str] = None,
         **kwargs,
     ) -> UnifiedResponse:
         """Execute a single model call with retry + key rotation."""
@@ -336,9 +340,9 @@ class LLMBridge:
 
         adapter = provider_cls()
 
-        # Determine API key (rotate if multiple)
-        alias = f"{model_cfg.provider}/{model_cfg.model}"
-        rotator = self._key_rotators.get(alias)
+        # Determine API key: prefer rotator keyed by config alias (round-robin),
+        # then fall back to first key in model_cfg, then empty string.
+        rotator = self._key_rotators.get(_config_alias) if _config_alias else None
         if rotator:
             api_key = rotator.next()
         elif model_cfg.api_keys:
