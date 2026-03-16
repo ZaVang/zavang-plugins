@@ -380,3 +380,14 @@ async def test_bridge_chat_no_skills_does_not_touch_params() -> None:
         )
 
     assert captured["system_prompt"] == "custom"
+
+
+# ---------------------------------------------------------------------------
+# Package export tests
+# ---------------------------------------------------------------------------
+
+def test_package_exports_skill_classes() -> None:
+    """All skill-related symbols must be importable from the top-level package."""
+    import llm_bridge
+    for name in ("SkillLoader", "LLMBridgeError", "SkillNotFoundError", "SkillRenderError"):
+        assert hasattr(llm_bridge, name), f"Missing export: {name}"
