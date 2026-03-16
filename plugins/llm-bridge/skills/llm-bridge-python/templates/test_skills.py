@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+from jinja2 import UndefinedError
 
+from llm_bridge import LLMBridge, ChatParameters
+from llm_bridge.models import BridgeConfig, ModelConfig, UnifiedResponse, UsageInfo
 from llm_bridge.skills import (
     LLMBridgeError,
     SkillLoader,
@@ -170,7 +174,6 @@ def test_load_undefined_variable_raises_render_error(skills_dir: Path) -> None:
     with pytest.raises(SkillRenderError) as exc_info:
         loader.load("greeter", {})
     assert exc_info.value.skill_name == "greeter"
-    from jinja2 import UndefinedError
     assert isinstance(exc_info.value.cause, UndefinedError)
 
 
@@ -204,15 +207,14 @@ def test_load_many_raises_if_any_skill_missing(skills_dir: Path) -> None:
         loader.load_many(["greeter", "missing"], {"name": "X"})
 
 
+def test_load_many_empty_list_returns_empty_string(tmp_path: Path) -> None:
+    loader = SkillLoader(tmp_path)
+    assert loader.load_many([]) == ""
+
+
 # ===========================================================================
 # LLMBridge integration tests
 # ===========================================================================
-
-from unittest.mock import patch
-
-from llm_bridge import LLMBridge, ChatParameters
-from llm_bridge.models import BridgeConfig, ModelConfig, UnifiedResponse, UsageInfo
-from llm_bridge.skills import LLMBridgeError
 
 
 def _make_bridge(

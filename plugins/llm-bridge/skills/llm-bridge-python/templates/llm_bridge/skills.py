@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import frontmatter
-from jinja2 import Environment, StrictUndefined, TemplateError, UndefinedError
+from jinja2 import Environment, StrictUndefined, TemplateError
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +70,10 @@ class SkillLoader:
         if not skills_dir.exists():
             raise FileNotFoundError(
                 f"Skills directory does not exist: {skills_dir}"
+            )
+        if not skills_dir.is_dir():
+            raise NotADirectoryError(
+                f"Skills directory is not a directory: {skills_dir}"
             )
         self._skills_dir = skills_dir
         self._jinja_env = Environment(
