@@ -1,0 +1,11 @@
+{
+  "name": "project-chronicle",
+  "description": "Auto-generate a development log for your project. Run /chronicle at the end of each session to append a timestamped summary to docs/chronicle.md — capturing steps, tools, skills, and outcomes across multiple sessions.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ZaVang"
+  },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT"
+}

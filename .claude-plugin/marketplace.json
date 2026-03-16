@@ -40,6 +40,17 @@
       },
       "license": "MIT",
       "category": "development"
+    },
+    {
+      "name": "project-chronicle",
+      "source": "./plugins/project-chronicle",
+      "description": "Auto-generate a development log for your project. Run /chronicle at the end of each session to append a timestamped summary to docs/chronicle.md — capturing steps, tools, skills, and outcomes across multiple sessions.",
+      "version": "1.0.0",
+      "author": {
+        "name": "ZaVang"
+      },
+      "license": "MIT",
+      "category": "productivity"
     }
   ]
 }
