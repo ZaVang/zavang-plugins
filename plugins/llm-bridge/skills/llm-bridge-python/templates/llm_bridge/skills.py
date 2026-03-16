@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import frontmatter
-from jinja2 import Environment, StrictUndefined, UndefinedError
+from jinja2 import Environment, StrictUndefined, TemplateError, UndefinedError
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ class SkillLoader:
         try:
             template = self._jinja_env.from_string(body)
             return template.render(**vars_)
-        except UndefinedError as exc:
+        except TemplateError as exc:
             raise SkillRenderError(skill_name, exc) from exc
 
     def load_many(
@@ -141,6 +141,7 @@ class SkillLoader:
         -------
         str
             Single concatenated string of all rendered skill bodies.
+        If ``skill_names`` is empty, returns an empty string ``""``.
         """
         rendered = [self.load(name, variables) for name in skill_names]
         return "\n\n---\n\n".join(rendered)

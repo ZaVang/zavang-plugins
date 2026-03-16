@@ -68,14 +68,9 @@ def test_init_raises_on_missing_dir(tmp_path: Path) -> None:
 
 
 def test_init_succeeds_on_existing_dir(tmp_path: Path) -> None:
+    # Construction must not raise — the returned loader is usable
     loader = SkillLoader(tmp_path)
-    assert loader is not None
-
-
-def test_init_succeeds_on_empty_dir(tmp_path: Path) -> None:
-    # An empty skills dir is valid (no skills available, but no error)
-    loader = SkillLoader(tmp_path)
-    assert loader.list_skills() == []
+    assert loader.list_skills() == []  # empty dir → no skills, not an error
 
 
 # ---------------------------------------------------------------------------
@@ -175,7 +170,8 @@ def test_load_undefined_variable_raises_render_error(skills_dir: Path) -> None:
     with pytest.raises(SkillRenderError) as exc_info:
         loader.load("greeter", {})
     assert exc_info.value.skill_name == "greeter"
-    assert isinstance(exc_info.value.cause, Exception)
+    from jinja2 import UndefinedError
+    assert isinstance(exc_info.value.cause, UndefinedError)
 
 
 # ---------------------------------------------------------------------------
