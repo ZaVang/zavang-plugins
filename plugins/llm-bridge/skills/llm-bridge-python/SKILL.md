@@ -68,6 +68,7 @@ $TARGET_DIR/
 ├── config.py          # YAML config loader with env var interpolation
 ├── router.py          # Retry, fallback, key rotation logic
 ├── bridge.py          # Main LLMBridge class (entry point)
+├── skills.py          # SkillLoader — local prompt skill injection
 └── providers/
     ├── __init__.py
     ├── base.py               # Abstract base provider
@@ -93,6 +94,8 @@ Check if a `requirements.txt` or `pyproject.toml` exists in the project root.
 pydantic>=2.0
 python-dotenv>=1.0
 pyyaml>=6.0
+jinja2>=3.0
+python-frontmatter>=1.0
 ```
 
 And based on selected providers:
@@ -136,6 +139,15 @@ async def main():
         response_model=Summary
     )
     print(response.parsed)  # Summary(title=..., key_points=[...])
+
+    # Skill-based system prompt injection
+    response = await bridge.chat(
+        model="openai/gpt-4o",
+        messages=[{"role": "user", "content": "Review this code: def add(a, b): return a + b"}],
+        skills=["code-reviewer"],
+        skill_vars={"language": "Python"},
+    )
+    print(response.content)
 
 asyncio.run(main())
 ```
