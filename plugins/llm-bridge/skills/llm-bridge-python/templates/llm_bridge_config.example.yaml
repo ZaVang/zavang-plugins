@@ -20,6 +20,12 @@ retry:
 # Whether to log token usage after each call.
 log_usage: true
 
+# Path to skills directory (optional).
+# Each subdirectory must contain a SKILL.md file.
+# Relative paths are resolved from this config file's location.
+# Defaults to 'skills/' next to this config file (if that directory exists).
+# skills_dir: ./skills
+
 # Default model alias (used when no model is specified).
 default_model: gemini-3.1-flash-lite-preview
 
