@@ -202,3 +202,181 @@ def test_load_many_raises_if_any_skill_missing(skills_dir: Path) -> None:
     loader = SkillLoader(skills_dir)
     with pytest.raises(SkillNotFoundError):
         loader.load_many(["greeter", "missing"], {"name": "X"})
+
+
+# ===========================================================================
+# LLMBridge integration tests
+# ===========================================================================
+
+from unittest.mock import patch
+
+from llm_bridge import LLMBridge, ChatParameters
+from llm_bridge.models import BridgeConfig, ModelConfig, UnifiedResponse, UsageInfo
+from llm_bridge.skills import LLMBridgeError
+
+
+def _make_bridge(
+    skills_dir: Path | None = None,
+    config_path: Path | None = None,
+) -> LLMBridge:
+    """Create a minimal LLMBridge for testing without real API keys."""
+    config = BridgeConfig(
+        models={
+            "test-model": ModelConfig(
+                provider="openai",
+                model="gpt-4o",
+                api_keys=["sk-fake"],
+            )
+        },
+        skills_dir=str(skills_dir) if skills_dir else None,
+    )
+    return LLMBridge(config, config_path=config_path)
+
+
+def _fake_response() -> UnifiedResponse:
+    return UnifiedResponse(
+        provider="openai",
+        model="gpt-4o",
+        content="ok",
+        usage=UsageInfo(),
+    )
+
+
+# ---------------------------------------------------------------------------
+# SkillLoader instantiation in LLMBridge.__init__
+# ---------------------------------------------------------------------------
+
+def test_bridge_skill_loader_is_none_when_no_skills_dir_configured() -> None:
+    # No skills_dir in config, no config_path → _skill_loader must be None
+    bridge = _make_bridge()
+    assert bridge._skill_loader is None
+
+
+def test_bridge_skill_loader_created_when_skills_dir_exists(skills_dir: Path) -> None:
+    bridge = _make_bridge(skills_dir=skills_dir)
+    assert bridge._skill_loader is not None
+
+
+def test_bridge_skill_loader_is_none_when_configured_dir_missing(tmp_path: Path) -> None:
+    # skills_dir is set but the directory does not exist → silent None, no error at startup
+    nonexistent = tmp_path / "no-skills"
+    config = BridgeConfig(
+        models={"m": ModelConfig(provider="openai", model="gpt-4o", api_keys=["k"])},
+        skills_dir=str(nonexistent),
+    )
+    bridge = LLMBridge(config, config_path=tmp_path / "config.yaml")
+    assert bridge._skill_loader is None
+
+
+def test_bridge_resolves_relative_skills_dir_from_config_path(tmp_path: Path) -> None:
+    """A relative skills_dir must be resolved relative to config_path, not CWD."""
+    skills_subdir = tmp_path / "my_skills"
+    skills_subdir.mkdir()
+    _make_skill(skills_subdir, "ping", body="pong")
+
+    config = BridgeConfig(
+        models={"m": ModelConfig(provider="openai", model="gpt-4o", api_keys=["k"])},
+        skills_dir="./my_skills",
+    )
+    bridge = LLMBridge(config, config_path=tmp_path / "config.yaml")
+    assert bridge._skill_loader is not None
+    assert "ping" in bridge._skill_loader.list_skills()
+
+
+# ---------------------------------------------------------------------------
+# chat() — skill injection
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_bridge_chat_raises_when_skills_but_no_loader() -> None:
+    bridge = _make_bridge()
+    with pytest.raises(LLMBridgeError, match="no skills directory"):
+        await bridge.chat(
+            model="test-model",
+            messages=[{"role": "user", "content": "hi"}],
+            skills=["greeter"],
+        )
+
+
+@pytest.mark.asyncio
+async def test_bridge_chat_injects_skill_as_system_prompt(skills_dir: Path) -> None:
+    bridge = _make_bridge(skills_dir=skills_dir)
+    captured: dict = {}
+
+    async def fake_call_model(model_cfg, messages, response_model, params, **kw):
+        captured["system_prompt"] = params.system_prompt if params else None
+        return _fake_response()
+
+    with patch.object(bridge, "_call_model", side_effect=fake_call_model):
+        await bridge.chat(
+            model="test-model",
+            messages=[{"role": "user", "content": "hi"}],
+            skills=["greeter"],
+            skill_vars={"name": "World"},
+        )
+
+    assert captured["system_prompt"] == "Hello, World!"
+
+
+@pytest.mark.asyncio
+async def test_bridge_chat_skill_is_prepended_before_existing_system_prompt(
+    skills_dir: Path,
+) -> None:
+    """Skill content comes FIRST, separated by '\\n\\n---\\n\\n'."""
+    bridge = _make_bridge(skills_dir=skills_dir)
+    captured: dict = {}
+
+    async def fake_call_model(model_cfg, messages, response_model, params, **kw):
+        captured["system_prompt"] = params.system_prompt if params else None
+        return _fake_response()
+
+    with patch.object(bridge, "_call_model", side_effect=fake_call_model):
+        await bridge.chat(
+            model="test-model",
+            messages=[{"role": "user", "content": "hi"}],
+            skills=["greeter"],
+            skill_vars={"name": "Alice"},
+            params=ChatParameters(system_prompt="Be concise."),
+        )
+
+    sp = captured["system_prompt"]
+    assert sp == "Hello, Alice!\n\n---\n\nBe concise."
+
+
+@pytest.mark.asyncio
+async def test_bridge_chat_does_not_mutate_caller_params(skills_dir: Path) -> None:
+    bridge = _make_bridge(skills_dir=skills_dir)
+    original_params = ChatParameters(system_prompt="original")
+
+    async def fake_call_model(model_cfg, messages, response_model, params, **kw):
+        return _fake_response()
+
+    with patch.object(bridge, "_call_model", side_effect=fake_call_model):
+        await bridge.chat(
+            model="test-model",
+            messages=[{"role": "user", "content": "hi"}],
+            skills=["greeter"],
+            skill_vars={"name": "Bob"},
+            params=original_params,
+        )
+
+    assert original_params.system_prompt == "original"
+
+
+@pytest.mark.asyncio
+async def test_bridge_chat_no_skills_does_not_touch_params() -> None:
+    bridge = _make_bridge()
+    captured: dict = {}
+
+    async def fake_call_model(model_cfg, messages, response_model, params, **kw):
+        captured["system_prompt"] = params.system_prompt if params else None
+        return _fake_response()
+
+    with patch.object(bridge, "_call_model", side_effect=fake_call_model):
+        await bridge.chat(
+            model="test-model",
+            messages=[{"role": "user", "content": "hi"}],
+            params=ChatParameters(system_prompt="custom"),
+        )
+
+    assert captured["system_prompt"] == "custom"
