@@ -29,6 +29,17 @@
       },
       "license": "MIT",
       "category": "development"
+    },
+    {
+      "name": "llm-bridge",
+      "source": "./plugins/llm-bridge",
+      "description": "Drop a production-ready LLM gateway into any Python project. Unified OpenAI, Anthropic, and Google Gemini/Vertex AI interface with structured output, retry, fallback, and key rotation.",
+      "version": "1.0.0",
+      "author": {
+        "name": "ZaVang"
+      },
+      "license": "MIT",
+      "category": "development"
     }
   ]
 }
