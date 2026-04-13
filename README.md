@@ -23,6 +23,18 @@ One-click project initialization with CLAUDE.md templates, directory structure, 
 - **Auto-formatting Hook**: Python files auto-formatted with black + isort
 - **Templates**: Customizable project templates for different project types
 
+### llm-bridge
+Drop a production-ready LLM gateway module into any Python project with a single command. Unifies OpenAI, Anthropic, and Google Gemini/Vertex AI behind one clean interface.
+
+**Features:**
+- **Unified `LLMBridge.chat()` API**: one call works across all providers
+- **Pydantic Structured Output**: pass a `response_model` and get a typed object back
+- **Retry with Exponential Backoff**: configurable attempts, delays, and jitter
+- **Dynamic Fallback**: if model A fails, automatically try model B
+- **API Key Rotation**: round-robin across multiple keys per provider
+- **Flexible Placement**: choose any parent dir (`src/services/`, `src/`, `infra/`, …) and any module name (`llm_bridge`, `ai_client`, `llm_gateway`, …)
+- **Guard Hooks**: warns if direct SDK imports or hardcoded API keys appear in project files
+
 ## Installation
 
 ### Option 1: Plugin Marketplace (Recommended)
@@ -89,7 +101,7 @@ myapp/
 └── pyproject.toml          # Python config
 ```
 
-## Available Commands
+### Available Commands
 
 ### claude-autoupdate
 
@@ -107,6 +119,12 @@ myapp/
 | `/claude-init:doc-writer` | Generate documentation and docstrings |
 | `/claude-init:architect` | Analyze project architecture |
 | `/claude-init:debugger` | Debug errors and trace issues |
+
+### llm-bridge
+
+| Command | Description |
+|---------|-------------|
+| `/llm-bridge:llm-bridge-python` | Add a production-ready LLM Bridge module to any Python project |
 
 ## Agents
 
@@ -168,16 +186,28 @@ zavang-plugins/
 │   │   └── agents/
 │   │       └── changelog-analyst/
 │   │           └── AGENT.md
-│   └── claude-init/            # claude-init plugin
+│   ├── claude-init/            # claude-init plugin
+│   │   ├── skills/
+│   │   │   └── init-project/
+│   │   │       └── SKILL.md
+│   │   ├── agents/
+│   │   │   ├── code-reviewer/
+│   │   │   ├── test-writer/
+│   │   │   ├── doc-writer/
+│   │   │   ├── architect/
+│   │   │   └── debugger/
+│   │   └── hooks/
+│   │       └── hooks.json
+│   └── llm-bridge/             # llm-bridge plugin
+│       ├── .claude-plugin/
+│       │   └── plugin.json
 │       ├── skills/
-│       │   └── init-project/
-│       │       └── SKILL.md
-│       ├── agents/
-│       │   ├── code-reviewer/
-│       │   ├── test-writer/
-│       │   ├── doc-writer/
-│       │   ├── architect/
-│       │   └── debugger/
+│       │   └── llm-bridge-python/
+│       │       ├── SKILL.md
+│       │       └── templates/
+│       │           ├── llm_bridge/      # module source template
+│       │           ├── llm_bridge_config.example.yaml
+│       │           └── test_*.py
 │       └── hooks/
 │           └── hooks.json
 └── README.md

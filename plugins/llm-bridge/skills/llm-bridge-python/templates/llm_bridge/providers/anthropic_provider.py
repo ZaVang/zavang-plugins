@@ -76,6 +76,9 @@ class AnthropicProvider(BaseProvider):
         # frequency_penalty, presence_penalty, seed → NOT supported by Anthropic
 
         # ── Call SDK ──────────────────────────────────────────────
+        content_text: Optional[str] = None
+        thinking_text: Optional[str] = None
+
         if response_model is not None:
             response = await client.beta.messages.parse(
                 model=model,
@@ -86,10 +89,9 @@ class AnthropicProvider(BaseProvider):
             )
             parsed = response.parsed_output
             # Anthropic structured output may also carry text blocks
-            content = None
             for block in response.content:
                 if hasattr(block, "text"):
-                    content = block.text
+                    content_text = block.text
                     break
         else:
             response = await client.messages.create(
@@ -98,9 +100,7 @@ class AnthropicProvider(BaseProvider):
                 **sdk_kwargs,
             )
             parsed = None
-            content_text = None
-            thinking_text = None
-            
+
             if hasattr(response, "content") and isinstance(response.content, list):
                 text_blocks = []
                 thinking_blocks = []
@@ -109,7 +109,7 @@ class AnthropicProvider(BaseProvider):
                         text_blocks.append(getattr(block, "text", ""))
                     elif getattr(block, "type", "") == "thinking":
                         thinking_blocks.append(getattr(block, "thinking", ""))
-                
+
                 if text_blocks:
                     content_text = "\n\n".join(text_blocks)
                 if thinking_blocks:
@@ -118,9 +118,6 @@ class AnthropicProvider(BaseProvider):
                 content_text = response.content[0].text if hasattr(response.content[0], "text") else None
 
         # ── Map response ──────────────────────────────────────────
-        usage = response.usage
-        input_tok = getattr(usage, "input_tokens", 0) or 0
-        output_tok = getattr(usage, "output_tokens", 0) or 0
         return UnifiedResponse(
             provider="anthropic",
             model=model,

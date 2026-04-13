@@ -279,3 +279,11 @@ class BridgeConfig(BaseModel):
         default=True,
         description="Whether to log token usage after each call.",
     )
+    skills_dir: Optional[str] = Field(
+        default=None,
+        description=(
+            "Path to the skills directory. Each subdirectory must contain SKILL.md. "
+            "Relative paths are resolved from the config YAML file's parent directory. "
+            "Defaults to 'skills/' next to the config file if that directory exists."
+        ),
+    )

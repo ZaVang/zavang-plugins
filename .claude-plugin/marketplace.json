@@ -31,6 +31,28 @@
       "category": "development"
     },
     {
+      "name": "llm-bridge",
+      "source": "./plugins/llm-bridge",
+      "description": "Drop a production-ready LLM gateway into any Python project. Unified OpenAI, Anthropic, and Google Gemini/Vertex AI interface with structured output, retry, fallback, and key rotation.",
+      "version": "1.0.0",
+      "author": {
+        "name": "ZaVang"
+      },
+      "license": "MIT",
+      "category": "development"
+    },
+    {
+      "name": "project-chronicle",
+      "source": "./plugins/project-chronicle",
+      "description": "Auto-generate a development log for your project. Run /chronicle at the end of each session to append a timestamped summary to docs/chronicle.md — capturing steps, tools, skills, and outcomes across multiple sessions.",
+      "version": "1.0.0",
+      "author": {
+        "name": "ZaVang"
+      },
+      "license": "MIT",
+      "category": "productivity"
+    },
+    {
       "name": "multi-ralph",
       "source": "./plugins/multi-ralph",
       "description": "Multi-agent Sprint execution loop with Planner, Generator, and Evaluator subagents. File-isolated context, pitfalls knowledge-base, iterative verification.",

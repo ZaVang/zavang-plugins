@@ -19,6 +19,7 @@ from .config import load_config
 from .models import BridgeConfig, ChatParameters, ModelConfig, UnifiedResponse
 from .providers import PROVIDER_REGISTRY, BaseProvider
 from .router import KeyRotator, fallback_chain, retry_with_backoff
+from .skills import LLMBridgeError, SkillLoader
 
 logger = logging.getLogger("llm_bridge")
 
@@ -103,7 +104,7 @@ class LLMBridge:
         )
     """
 
-    def __init__(self, config: BridgeConfig) -> None:
+    def __init__(self, config: BridgeConfig, *, config_path: Optional[Path] = None) -> None:
         self._config = config
         self._providers: dict[str, BaseProvider] = {}
         self._key_rotators: dict[str, KeyRotator] = {}
@@ -120,6 +121,28 @@ class LLMBridge:
             if model_cfg.api_keys:
                 self._key_rotators[alias] = KeyRotator(model_cfg.api_keys)
 
+        # ------------------------------------------------------------------
+        # Skill loader — resolve skills_dir and create SkillLoader if present
+        # ------------------------------------------------------------------
+        if config.skills_dir:
+            raw = Path(config.skills_dir)
+            resolved_skills_dir: Optional[Path] = (
+                raw if raw.is_absolute()
+                else (config_path.parent / raw if config_path else raw)
+            )
+        elif config_path is not None:
+            # Default: look for 'skills/' next to the config file
+            resolved_skills_dir = config_path.parent / "skills"
+        else:
+            # No config_path provided — cannot resolve a default skills dir
+            resolved_skills_dir = None
+
+        self._skill_loader: Optional[SkillLoader] = (
+            SkillLoader(resolved_skills_dir)
+            if resolved_skills_dir is not None and resolved_skills_dir.exists()
+            else None
+        )
+
     # ------------------------------------------------------------------
     # Factory
     # ------------------------------------------------------------------
@@ -134,7 +157,8 @@ class LLMBridge:
             Path to a ``llm_bridge_config.yaml`` file.  Environment
             variables like ``${OPENAI_API_KEY}`` are resolved automatically.
         """
-        return cls(load_config(path))
+        config_path = Path(path).resolve()
+        return cls(load_config(config_path), config_path=config_path)
 
     # ------------------------------------------------------------------
     # Public API
@@ -147,6 +171,8 @@ class LLMBridge:
         *,
         response_model: Optional[Type[BaseModel]] = None,
         params: Optional[ChatParameters] = None,
+        skills: Optional[list[str]] = None,
+        skill_vars: Optional[dict] = None,
         **kwargs,
     ) -> UnifiedResponse:
         """Send a chat request through the bridge.
@@ -223,12 +249,35 @@ class LLMBridge:
         >>> print(response.usage.total_tokens)
         """
 
+        # ------------------------------------------------------------------
+        # Skill injection — load and merge into system prompt
+        # ------------------------------------------------------------------
+        if skills:
+            if self._skill_loader is None:
+                raise LLMBridgeError(
+                    "Cannot load skills: no skills directory is configured or the "
+                    "directory does not exist. Set 'skills_dir' in your config YAML."
+                )
+            skill_content = self._skill_loader.load_many(skills, skill_vars)
+            existing_system = params.system_prompt if params else None
+            merged_system = (
+                skill_content
+                if not existing_system
+                else f"{skill_content}\n\n---\n\n{existing_system}"
+            )
+            # Create a NEW ChatParameters — never mutate the caller's object.
+            # This merged params is shared across primary + all fallback calls.
+            params = (params or ChatParameters()).model_copy(
+                update={"system_prompt": merged_system}
+            )
+
         model_cfg = self._resolve_model(model)
         alias = model  # keep for logging
 
         # Build the primary call
         primary = functools.partial(
-            self._call_model, model_cfg, messages, response_model, params, **kwargs
+            self._call_model, model_cfg, messages, response_model, params,
+            _config_alias=alias, **kwargs
         )
 
         # Build fallback callables
@@ -237,7 +286,8 @@ class LLMBridge:
             fb_cfg = self._resolve_model(fb_model_str)
             fallback_fns.append(
                 functools.partial(
-                    self._call_model, fb_cfg, messages, response_model, params, **kwargs
+                    self._call_model, fb_cfg, messages, response_model, params,
+                    _config_alias=fb_model_str, **kwargs
                 )
             )
 
@@ -326,6 +376,8 @@ class LLMBridge:
         messages: list[dict],
         response_model: Optional[Type[BaseModel]],
         params: Optional[ChatParameters],
+        *,
+        _config_alias: Optional[str] = None,
         **kwargs,
     ) -> UnifiedResponse:
         """Execute a single model call with retry + key rotation."""
@@ -336,9 +388,9 @@ class LLMBridge:
 
         adapter = provider_cls()
 
-        # Determine API key (rotate if multiple)
-        alias = f"{model_cfg.provider}/{model_cfg.model}"
-        rotator = self._key_rotators.get(alias)
+        # Determine API key: prefer rotator keyed by config alias (round-robin),
+        # then fall back to first key in model_cfg, then empty string.
+        rotator = self._key_rotators.get(_config_alias) if _config_alias else None
         if rotator:
             api_key = rotator.next()
         elif model_cfg.api_keys:
