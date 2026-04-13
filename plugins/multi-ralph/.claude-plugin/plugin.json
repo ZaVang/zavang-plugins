@@ -1,0 +1,11 @@
+{
+  "name": "multi-ralph",
+  "description": "Multi-agent Sprint execution loop with Planner, Generator, and Evaluator subagents. Drives iterative, file-isolated task completion with pitfalls knowledge-base integration.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ZaVang"
+  },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT"
+}

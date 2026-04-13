@@ -29,6 +29,17 @@
       },
       "license": "MIT",
       "category": "development"
+    },
+    {
+      "name": "multi-ralph",
+      "source": "./plugins/multi-ralph",
+      "description": "Multi-agent Sprint execution loop with Planner, Generator, and Evaluator subagents. File-isolated context, pitfalls knowledge-base, iterative verification.",
+      "version": "1.0.0",
+      "author": {
+        "name": "ZaVang"
+      },
+      "license": "MIT",
+      "category": "development"
     }
   ]
 }

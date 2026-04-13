@@ -117,10 +117,7 @@ Create `.claude/CLAUDE.md` with development conventions:
 - Create `pyproject.toml` with project metadata
 - Create `requirements.txt`
 - Add `.gitignore` for Python
-- Create `.claude/rules/python.md` with:
-  - Schema-first development (Pydantic)
-  - Module decoupling rules
-  - File organization patterns
+- Copy `templates/rules/python.md` → `.claude/rules/python.md` (Schema-first Pydantic rules, module decoupling, error handling, logging conventions)
 
 **TypeScript:**
 - Create `package.json`
@@ -165,4 +162,8 @@ Available plugin commands:
   /claude-init:code-reviewer  - Review code quality
   /claude-init:test-writer    - Generate tests
   /claude-init:doc-writer     - Generate documentation
+
+For Sprint-driven development:
+  /multi-ralph:help        - See prerequisites and usage guide
+  /multi-ralph:multi-ralph - Run Planner→Generator→Evaluator loop
 ```
