@@ -35,6 +35,25 @@ Drop a production-ready LLM gateway module into any Python project with a single
 - **Flexible Placement**: choose any parent dir (`src/services/`, `src/`, `infra/`, …) and any module name (`llm_bridge`, `ai_client`, `llm_gateway`, …)
 - **Guard Hooks**: warns if direct SDK imports or hardcoded API keys appear in project files
 
+### perspective-encoder
+A modular multi-perspective reasoning framework for the deepthought factor prediction system. Designed to integrate LLM-based qualitative analysis with Bayesian Network quantitative inference.
+
+**Features:**
+- **Four-Layer Perspective Architecture**:
+  - Layer 0: Exogenous variable inference (RegimeState, EconCycle, MonetaryCycle)
+  - Layer 1: Transmission path perspectives (policy, liquidity, cycle)
+  - Layer 2: Regime-specific specialists (risk_on, risk_off, crisis, recovery)
+  - Layer 3: Event-type analysts (monetary_policy, geopolitical, trade)
+  - Layer 4: Mediator-specific analysts (10 specialized analysts)
+- **Dynamic Prompt Assembly**: Automatically selects and combines perspectives based on market state and event type
+- **Market State Tracking**: Persistent tracking with transition history
+- **Mediator Analysis**: Deep analysis for each of the 10 mediators in the causal network
+
+**Use Cases:**
+- Factor prediction for quantitative trading systems
+- Market regime classification and state tracking
+- Multi-agent investment analysis pipelines
+
 ## Installation
 
 ### Option 1: Plugin Marketplace (Recommended)

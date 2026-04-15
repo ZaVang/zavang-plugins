@@ -1,0 +1,73 @@
+{# 基础 Prompt 模板 - 用于生成视角 prompt #}
+
+# 角色设定
+
+{{ role_section }}
+
+---
+
+# 当前市场状态
+
+- **Regime**: {{ context.regime | default('unknown') }}
+- **EconCycle**: {{ context.econ_cycle | default('unknown') }}
+- **MonetaryCycle**: {{ context.monetary_cycle | default('unknown') }}
+- **EventType**: {{ context.event_type | default('none') }}
+{% if context.recent_news %}
+- **近期事件**: {{ context.recent_news[0] }}
+{% endif %}
+
+---
+
+# 分析框架
+
+## 传导路径
+
+{{ path_section }}
+
+## 关键问题
+
+{{ questions_section }}
+
+---
+
+# Mediator 关注权重
+
+{% if mediator_weights %}
+**重点关注（权重从高到低）**:
+{% for mediator, weight in mediator_weights.items() | sort(attribute='1', reverse=True) %}
+- {{ mediator }} (权重: {{ (weight * 100) | round }}%)
+{% endfor %}
+{% else %}
+请判断所有 10 个 mediator 的方向。
+{% endif %}
+
+---
+
+# 输出格式
+
+```json
+{
+  "perspective": "{{ perspective_key }}",
+  "mediator_judgments": {
+    "M_xxx": {
+      "direction": "up/down/stable",
+      "confidence": 0.0-1.0,
+      "reasoning": "判断依据"
+    }
+  },
+  "historical_analogue": "历史类比场景",
+  "factor_overrides": {}
+}
+```
+
+---
+
+# 可用工具
+
+{% for tool in tools %}
+- {{ tool }}
+{% endfor %}
+
+---
+
+请开始你的分析。

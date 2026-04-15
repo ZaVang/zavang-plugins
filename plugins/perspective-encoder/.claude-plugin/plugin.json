@@ -1,0 +1,22 @@
+{
+  "name": "perspective-encoder",
+  "description": "Modular multi-perspective reasoning framework for deepthought factor prediction system. Provides exogenous variable inference, mediator analysis, and dynamic prompt assembly.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ZaVang"
+  },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT",
+  "keywords": [
+    "deepthought",
+    "perspective",
+    "reasoning",
+    "factor-prediction",
+    "mediator-analysis"
+  ],
+  "dependencies": {
+    "python": ">=3.8",
+    "pyyaml": ">=5.0"
+  }
+}

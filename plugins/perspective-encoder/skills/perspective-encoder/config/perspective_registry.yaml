@@ -1,0 +1,308 @@
+# Perspective Registry
+# 视角注册表：定义所有可用视角及其元数据
+
+transmission:
+  policy_transmission:
+    name: "政策传导分析师"
+    file: "perspectives/transmission/policy_transmission.md"
+    trigger: "always"  # 基础视角，总是可用
+    mediator_weights:
+      M_rate_expectation: 0.35
+      M_rate_sensitive: 0.30
+      M_liquidity: 0.15
+      M_risk_premium: 0.10
+    tools:
+      - query_policy_history
+      - query_rate_sensitive_performance
+      - query_monetary_cycle_history
+    priority: 1
+    
+  liquidity_analyst:
+    name: "流动性分析师"
+    file: "perspectives/transmission/liquidity_analyst.md"
+    trigger: "always"
+    mediator_weights:
+      M_liquidity: 0.50
+      M_risk_premium: 0.25
+      M_rate_expectation: 0.15
+    tools:
+      - query_liquidity_indicator
+      - query_size_spread
+      - query_volatility_regime
+    priority: 1
+    
+  cycle_positioner:
+    name: "周期定位分析师"
+    file: "perspectives/transmission/cycle_positioner.md"
+    trigger: "always"
+    mediator_weights:
+      M_cyclical: 0.35
+      M_defensive: 0.25
+      M_rate_expectation: 0.20
+    tools:
+      - query_pmi
+      - query_yield_curve
+      - query_cycle_history
+    priority: 1
+    
+  risk_appetite_analyst:
+    name: "风险偏好分析师"
+    file: "perspectives/transmission/risk_appetite_analyst.md"
+    trigger: "always"
+    mediator_weights:
+      M_risk_premium: 0.40
+      M_liquidity: 0.25
+      M_sector_rotation: 0.15
+    tools:
+      - query_vix
+      - query_credit_spread
+      - query_risk_premium_history
+    priority: 1
+    
+  sector_rotator:
+    name: "行业轮动分析师"
+    file: "perspectives/transmission/sector_rotator.md"
+    trigger: "always"
+    mediator_weights:
+      M_sector_rotation: 0.25
+      M_growth_tech: 0.25
+      M_cyclical: 0.20
+      M_defensive: 0.15
+    tools:
+      - query_sector_momentum
+      - query_style_rotation_history
+    priority: 1
+
+regime:
+  risk_on_specialist:
+    name: "风险偏好扩张期专家"
+    file: "perspectives/regime/risk_on_specialist.md"
+    trigger:
+      regime: "risk_on"
+    mediator_bias:
+      M_risk_premium: "down"
+      M_growth_tech: "up"
+      M_cyclical: "up"
+    priority: 2
+    
+  risk_off_specialist:
+    name: "风险偏好收缩期专家"
+    file: "perspectives/regime/risk_off_specialist.md"
+    trigger:
+      regime: "risk_off"
+    mediator_bias:
+      M_risk_premium: "up"
+      M_defensive: "up"
+      M_growth_tech: "down"
+    priority: 2
+    
+  crisis_specialist:
+    name: "危机场景专家"
+    file: "perspectives/regime/crisis_specialist.md"
+    trigger:
+      regime: "crisis"
+    special_handling:
+      - require_extreme_scenario: true
+      - factor_override_weight: 1.5
+      - use_historical_analogue: true
+    priority: 3  # 最高优先级
+    
+  recovery_specialist:
+    name: "复苏期专家"
+    file: "perspectives/regime/recovery_specialist.md"
+    trigger:
+      regime: "recovery"
+    mediator_bias:
+      M_cyclical: "up"
+      M_rate_sensitive: "up"
+    priority: 2
+
+event:
+  monetary_policy_analyst:
+    name: "货币政策分析师"
+    file: "perspectives/event/monetary_policy_analyst.md"
+    trigger:
+      event_type: "monetary_policy"
+    mediator_weights:
+      M_rate_expectation: 0.40
+      M_rate_sensitive: 0.35
+      M_liquidity: 0.15
+    priority: 2
+    
+  geopolitical_analyst:
+    name: "地缘政治分析师"
+    file: "perspectives/event/geopolitical_analyst.md"
+    trigger:
+      event_type: "geopolitical"
+    mediator_weights:
+      M_risk_premium: 0.40
+      M_cyclical: 0.25  # 能源
+      M_defensive: 0.20
+    priority: 2
+    
+  trade_analyst:
+    name: "贸易政策分析师"
+    file: "perspectives/event/trade_analyst.md"
+    trigger:
+      event_type: "trade"
+    mediator_weights:
+      M_cyclical: 0.35
+      M_consumer: 0.25
+      M_growth_tech: 0.20
+    priority: 2
+    
+  fiscal_policy_analyst:
+    name: "财政政策分析师"
+    file: "perspectives/event/fiscal_policy_analyst.md"
+    trigger:
+      event_type: "fiscal_policy"
+    mediator_weights:
+      M_cyclical: 0.30
+      M_sector_rotation: 0.25
+    priority: 2
+    
+  regulatory_analyst:
+    name: "监管政策分析师"
+    file: "perspectives/event/regulatory_analyst.md"
+    trigger:
+      event_type: "regulatory"
+    priority: 2
+    
+  earnings_analyst:
+    name: "盈利事件分析师"
+    file: "perspectives/event/earnings_analyst.md"
+    trigger:
+      event_type: "earnings"
+    mediator_weights:
+      M_earnings_revision: 0.45
+      M_risk_premium: 0.20
+    priority: 2
+    
+  liquidity_event_analyst:
+    name: "流动性事件分析师"
+    file: "perspectives/event/liquidity_event_analyst.md"
+    trigger:
+      event_type: "liquidity"
+    mediator_weights:
+      M_liquidity: 0.50
+      M_risk_premium: 0.25
+    priority: 2
+    
+  sentiment_analyst:
+    name: "情绪事件分析师"
+    file: "perspectives/event/sentiment_analyst.md"
+    trigger:
+      event_type: "sentiment"
+    mediator_weights:
+      M_risk_premium: 0.35
+      M_sector_rotation: 0.25
+    priority: 2
+
+# 视角组合策略
+combination_strategies:
+  default:
+    - "all_transmission"  # 使用所有传导视角
+    - "active_regime"     # 当前 regime 对应的专家
+    - "active_event"      # 当前 event 对应的专家
+    
+  minimal:
+    - "cycle_positioner"
+    - "risk_appetite_analyst"
+    - "active_regime"
+    
+  crisis_mode:
+    - "crisis_specialist"
+    - "liquidity_analyst"
+    - "risk_appetite_analyst"
+
+# ============================================
+# Layer 0: 外生变量分析视角
+# ============================================
+exogenous:
+  regime_analyst:
+    name: "市场状态分析师"
+    file: "perspectives/exogenous/regime_analyst.md"
+    trigger: "state_inference"  # 状态推断专用
+    output_type: "RegimeState"
+    priority: 0  # 最高优先级，必须先判断状态
+    
+  cycle_analyst:
+    name: "周期定位分析师"
+    file: "perspectives/exogenous/cycle_analyst.md"
+    trigger: "state_inference"
+    output_type: "EconCycle, MonetaryCycle"
+    priority: 0
+
+# ============================================
+# Layer 2: Mediator 专门分析视角
+# ============================================
+mediator:
+  M_liquidity_analyst:
+    name: "流动性分析师"
+    file: "perspectives/mediator/M_liquidity_analyst.md"
+    target_mediator: "M_liquidity"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_risk_premium_analyst:
+    name: "风险溢价分析师"
+    file: "perspectives/mediator/M_risk_premium_analyst.md"
+    target_mediator: "M_risk_premium"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_rate_expectation_analyst:
+    name: "利率预期分析师"
+    file: "perspectives/mediator/M_rate_expectation_analyst.md"
+    target_mediator: "M_rate_expectation"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_sector_rotation_analyst:
+    name: "行业轮动分析师"
+    file: "perspectives/mediator/M_sector_rotation_analyst.md"
+    target_mediator: "M_sector_rotation"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_earnings_revision_analyst:
+    name: "盈利修正分析师"
+    file: "perspectives/mediator/M_earnings_revision_analyst.md"
+    target_mediator: "M_earnings_revision"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_cyclical_analyst:
+    name: "周期性行业分析师"
+    file: "perspectives/mediator/M_cyclical_analyst.md"
+    target_mediator: "M_cyclical"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_defensive_analyst:
+    name: "防御性行业分析师"
+    file: "perspectives/mediator/M_defensive_analyst.md"
+    target_mediator: "M_defensive"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_rate_sensitive_analyst:
+    name: "利率敏感行业分析师"
+    file: "perspectives/mediator/M_rate_sensitive_analyst.md"
+    target_mediator: "M_rate_sensitive"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_growth_tech_analyst:
+    name: "成长科技行业分析师"
+    file: "perspectives/mediator/M_growth_tech_analyst.md"
+    target_mediator: "M_growth_tech"
+    trigger: "mediator_analysis"
+    priority: 1
+    
+  M_consumer_analyst:
+    name: "消费行业分析师"
+    file: "perspectives/mediator/M_consumer_analyst.md"
+    target_mediator: "M_consumer"
+    trigger: "mediator_analysis"
+    priority: 1
