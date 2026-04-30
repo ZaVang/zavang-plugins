@@ -1,14 +1,14 @@
 ---
 name: product-loop
-description: 启动 Product-Loop（Planner + Generator + Evaluator + Product Experience Reviewer 四个 Task subagent）。内部研发团队构建产品，体验官从用户视角挑剔审计，通过协商文档持续迭代。默认参数：max_iter=1，Sprint 合同路径=docs/plans/SPRINT.md。
+description: 启动 Product-Loop（Product Experience Reviewer → Planner → Generator → Evaluator 四个 Task subagent）。体验官先审计产品，内部研发团队再响应实现，通过协商文档持续迭代。默认参数：max_iter=1，Sprint 合同路径=docs/plans/SPRINT.md。
 allowed-tools: Read, Write, Bash, Task
 ---
 
 # Product-Loop
 
-启动四角色 Sprint 执行工作流（Planner → Generator → Evaluator → Product Experience Reviewer），通过文件通信隔离上下文，永远迭代到 max_iter。
+启动四角色迭代工作流（Reviewer → Planner → Generator → Evaluator），通过文件通信隔离上下文，永远迭代到 max_iter。
 
-**核心隐喻**：Planner/Generator/Evaluator 是内部研发团队，Reviewer 是挑剔的外部体验官。双方通过 negotiation.md 进行结构化协商。
+**核心隐喻**：Product Experience Reviewer 是挑剔的外部体验官，Planner/Generator/Evaluator 是内部研发团队。每轮体验官先审计产品产出报告，研发团队再根据报告拆解 Sprint 并实现。双方通过 negotiation.md 进行结构化协商。
 
 ## 用法
 
@@ -33,37 +33,76 @@ allowed-tools: Read, Write, Bash, Task
 
 | 文件 | 作用 | 谁读 | 谁写 |
 |------|------|------|------|
-| `docs/plans/SPRINT.md` | Sprint 合同（任务清单+验收命令） | Planner, Generator, Evaluator | Generator（勾选checkbox） |
-| `docs/plans/pitfalls.md` | 陷阱知识库（踩过的坑） | **全部四个** | Generator、Evaluator（Sprint结束追加） |
+| `docs/plans/SPRINT.md` | Sprint 合同（任务清单+验收命令） | 全部四个 | Generator（勾选checkbox） |
+| `docs/plans/pitfalls.md` | 陷阱知识库（踩过的坑） | 全部四个 | Generator、Evaluator（Sprint结束追加） |
+| `docs/orch/product-audit-report.md` | 体验官审计报告 | Planner（本轮Step B） | Reviewer（本轮Step A） |
+| `docs/orch/negotiation.md` | Planner 对 reviewer 建议的逐条回应 | Reviewer（下轮Step A） | Planner（本轮Step B） |
 | `docs/orch/plan.md` | 本轮任务计划/合同 | Generator | Planner |
 | `docs/orch/gen_status.md` | Generator 自报状态 | Evaluator | Generator |
-| `docs/orch/eval.md` | Evaluator 验收报告 | Planner（下一轮，信息性参考） | Evaluator |
-| `docs/orch/product-audit-report.md` | 体验官审计报告 | Planner（下一轮）+ Reviewer（下一轮） | Reviewer |
-| `docs/orch/negotiation.md` | Planner 对 reviewer 建议的逐条回应 | Reviewer（下一轮） | Planner |
+| `docs/orch/eval.md` | Evaluator 验收报告 | Planner（下轮，信息性参考） | Evaluator |
 
 ---
 
 ## 执行流程
 
 1. 运行 `mkdir -p docs/orch` 确保通信目录存在
-2. 读取 `docs/plans/SPRINT.md`，确认存在 `[ ]` 未完成任务。如果没有未完成任务，告知用户 "Sprint 已全部完成，无需启动 Product-Loop"，结束。
-3. 提取项目背景信息（从 README.md 或 SPRINT.md 中获取产品名称、启动方式、端口等）
+2. 读取 `docs/plans/SPRINT.md`，提取产品背景信息（产品名称、简介、启动方式、端口等）
+3. 提取项目背景信息（从 README.md 获取产品名称、启动方式、端口等，补充 SPRINT.md 中缺失的信息）
 4. 执行迭代循环（默认 max_iter=1，**永不提前停止**）：
 
 ### 每轮迭代执行以下四步（严格串行，前一个完成后才启动下一个）：
 
-#### Step A — Planner（Task subagent, general-purpose）
+#### Step A — Product Experience Reviewer（系统 agent，先于研发团队）
 
-启动一个 Task subagent，prompt 如下（用实际迭代编号替换 `{ITER}`）：
+**本轮的第一步——体验官先体验当前产品状态，产出审计报告。**
+
+启动系统级 agent `product-experience-reviewer`，prompt 如下（用实际迭代编号替换 `{ITER}`）：
 
 ```
-你是 Sprint Planner。你的职责是读取 Sprint 合同和上轮体验官审计报告，产出一份精简的任务计划（合同），并对体验官的建议逐条回应。
+你需要以首次用户的身份体验本产品，并输出一份完整的体验审计报告到 docs/orch/product-audit-report.md。
+
+## 项目背景
+
+产品名称：[从 SPRINT.md 或 README.md 提取]
+产品简介：[从 SPRINT.md 或 README.md 提取]
+启动方式：[从 SPRINT.md 或 README.md 提取，如 npm run dev --port XXXX]
+访问地址：[如 http://localhost:PORT]
+
+## 当前 Sprint 目标
+
+[粘贴 SPRINT.md 中所有任务（含 [x] 和 [ ]），让 reviewer 了解产品的整体目标和当前进度]
+
+## 产品方对上轮建议的回应（如有）
+
+[如果 docs/orch/negotiation.md 存在，粘贴其完整内容；不存在则写"首轮迭代，无协商记录"]
+
+## 工作要求
+
+1. 按照你的标准 6 阶段 PM 评估框架进行体验
+2. 如果是前端产品，使用 node .claude/scripts/get_page_state.js 脚本获取界面状态
+3. 你是挑剔的用户——永远假设还有改进空间，不要因为"功能实现了"就满意
+4. 关注整体体验的一致性，也关注上轮 negotiation.md 中产品方声称已修复的问题是否真的改善了
+5. 将完整报告写入 docs/orch/product-audit-report.md
+
+你的报告将交给本轮 Planner，Planner 会逐条回应的你的建议并拆解为 Sprint 任务。请确保你的建议具体、可操作、分优先级（🔴 Critical / 🟡 Important / 🟢 Nice-to-have）。
+```
+
+描述设为："Product Experience Reviewer: 用户体验审计（第{ITER}轮）"
+
+**重要**：Reviewer 作为系统 agent 运行，拥有自己的持久化记忆。调用时使用 `Agent` 工具，指定 agent 名称 `product-experience-reviewer`。
+
+#### Step B — Planner（Task subagent, general-purpose）
+
+等 Reviewer 完成后，启动 Planner subagent，prompt 如下（用实际迭代编号替换 `{ITER}`）：
+
+```
+你是 Sprint Planner。你的职责是读取体验官刚产出的审计报告，结合 Sprint 合同和上轮评估，产出一份精简的任务计划（合同），并对体验官的建议逐条回应。
 
 ## 核心规则
 
 1. 你只负责规划 WHAT 和 WHY，绝不指定 HOW
 2. 你不写代码、不指定文件路径、不写实现步骤
-3. 你的输出写入两个文件：docs/orch/plan.md 和 docs/orch/negotiation.md
+3. 你的输出写入三个文件：docs/orch/plan.md（本轮任务计划）、docs/orch/negotiation.md（对体验官的回应），并将任务拆解结果更新到 docs/plans/SPRINT.md
 
 ## 明确禁止
 
@@ -75,24 +114,36 @@ allowed-tools: Read, Write, Bash, Task
 
 ## 工作流程
 
-1. 读取 docs/plans/SPRINT.md，找出所有 [ ] 未完成任务
-2. **读取 docs/plans/pitfalls.md，筛选与本次任务相关的陷阱**（这是必须步骤）
-3. 如果 docs/orch/eval.md 存在（上轮 Evaluator 反馈），仔细分析失败原因，据此调整本轮策略
-4. **如果 docs/orch/product-audit-report.md 存在（上轮体验官报告），仔细阅读体验官发现的问题和建议。你可以选择性接受——并非所有建议都必须采纳，但要逐条回应并给出理由。**
+1. **读取 docs/orch/product-audit-report.md（本轮体验官刚写的报告——这是必须步骤）**，仔细阅读体验官发现的问题和建议。你可以选择性接受——并非所有建议都必须采纳，但要逐条回应并给出理由。
+2. 读取 docs/plans/SPRINT.md，了解 Sprint 整体目标
+3. **读取 docs/plans/pitfalls.md，筛选与本次任务相关的陷阱**（这是必须步骤）
+4. 如果 docs/orch/eval.md 存在（上轮 Evaluator 反馈），仔细分析失败原因，据此调整本轮策略
+5. 根据体验官报告和你自己的判断，将本轮要做的任务拆解后**追加**到 docs/plans/SPRINT.md 的任务清单（用 `[ ]` 标记未完成项）
 
-### 输出 1：写入 docs/orch/plan.md（覆盖写）
+### 输出 1：更新 docs/plans/SPRINT.md（追加本轮任务）
+
+在 SPRINT.md 的任务清单末尾追加本轮新任务：
+```markdown
+## 第 {ITER} 轮追加任务（基于体验官审计）
+
+- [ ] [任务标识]: [任务名称]
+  - 目标：[一句话描述要达成什么]
+  - 验收：[该任务的具体通过标准]
+```
+
+### 输出 2：写入 docs/orch/plan.md（覆盖写）
 
 # Iteration {ITER} Plan
 
-## 待完成任务（按依赖顺序）
+## 本轮任务（按依赖顺序）
 1. [任务标识]: [任务名称]
    - 目标：[一句话描述要达成什么]
    - 依赖：[依赖哪个前置任务，如无则写"无"]
    - 验收：[该任务的具体通过标准]
+   - 来源：[体验官建议 / Planner 自主判断 / 上轮遗留]
 
-## 来自体验官的改进项（从 product-audit-report.md 中你决定采纳的建议）
-- [建议] → 本轮行动：[做什么]
-- （如果本轮无相关建议可写"本轮无"）
+## 来自体验官的改进项（采纳的）
+- [建议标题] → 本轮行动：[做什么]
 
 ## 相关陷阱（从 pitfalls.md 筛选）
 - [分类] 陷阱描述...
@@ -104,13 +155,11 @@ allowed-tools: Read, Write, Bash, Task
 ## 验收命令（从 SPRINT.md 的验收命令章节原样复制）
 （粘贴验收命令）
 
-### 输出 2：写入 docs/orch/negotiation.md（覆盖写）
+### 输出 3：写入 docs/orch/negotiation.md（覆盖写）
 
 # Negotiation — Iteration {ITER}
 
-## 对上轮体验官报告的逐条回应
-
-> 如果上轮无 product-audit-report.md，写"首轮迭代，无上轮体验官报告"。
+## 对本轮体验官报告的逐条回应
 
 ### 建议 1: [体验官建议标题——从 product-audit-report.md 的「Prioritized Recommendations」章节提取]
 - **决策**：接受 / 拒绝 / 部分接受
@@ -120,13 +169,13 @@ allowed-tools: Read, Write, Bash, Task
 ### 建议 2: [同上格式]
 ...
 
-## 本轮新增的改进方向（如有）
-- [Planner 自己发现的、未在体验官报告中出现的新改进方向]
+## 本轮 Plannner 自主发现的改进方向（不在体验官报告中的）
+- [改进方向] → 本轮行动：[做什么]
 ```
 
-描述设为："Planner: 分析 Sprint 任务 + 体验官报告，写入 plan.md 和 negotiation.md"
+描述设为："Planner: 分析体验官报告，写入 plan.md + negotiation.md + 更新 SPRINT.md"
 
-#### Step B — Generator（Task subagent, general-purpose）
+#### Step C — Generator（Task subagent, general-purpose）
 
 等 Planner 完成后，启动 Generator subagent，prompt 如下（用实际迭代编号替换 `{ITER}`）：
 
@@ -176,7 +225,7 @@ PASSED / PARTIAL / FAILED / BLOCKED
 
 描述设为："Generator: 实现代码并运行验收命令"
 
-#### Step C — Evaluator（Task subagent, general-purpose）
+#### Step D — Evaluator（Task subagent, general-purpose）
 
 等 Generator 完成后，启动 Evaluator subagent，prompt 如下（用实际迭代编号替换 `{ITER}`）：
 
@@ -225,48 +274,6 @@ COMPLETE / CONTINUE / BLOCKED
 
 描述设为："Evaluator: 独立验证并输出评估报告"
 
-#### Step D — Product Experience Reviewer（系统 agent）
-
-等 Evaluator 完成后，启动 Product Experience Reviewer。**使用系统级 agent `product-experience-reviewer`**。
-
-```
-你需要以首次用户的身份体验本产品，并输出一份完整的体验审计报告到 docs/orch/product-audit-report.md。
-
-## 项目背景
-
-产品名称：[从 SPRINT.md 或 README.md 提取]
-产品简介：[从 SPRINT.md 或 README.md 提取]
-启动方式：[从 SPRINT.md 或 README.md 提取，如 npm run dev --port XXXX]
-访问地址：[如 http://localhost:PORT]
-
-## 本轮构建上下文
-
-本轮的 Sprint 任务是：
-[粘贴 SPRINT.md 中 [ ] 和 [x] 任务的关键摘要]
-
-## 上轮体验官报告（如有）
-
-[如果 docs/orch/product-audit-report.md 存在，粘贴其「Prioritized Recommendations」章节；不存在则写"首轮迭代，无上轮报告"]
-
-## 产品方对上轮建议的回应（如有）
-
-[如果 docs/orch/negotiation.md 存在，粘贴其完整内容；不存在则写"首轮迭代，无协商记录"]
-
-## 工作要求
-
-1. 按照你的标准 6 阶段 PM 评估框架进行体验
-2. 如果是前端产品，使用 node .claude/scripts/get_page_state.js 脚本获取界面状态
-3. 你是挑剔的用户——永远假设还有改进空间，不要因为"功能实现了"就满意
-4. 关注本轮新增/修改的功能，也关注整体体验的一致性
-5. 将完整报告写入 docs/orch/product-audit-report.md
-
-你的报告将交给下一轮 Planner，Planner 会逐条回应的你的建议。请确保你的建议具体、可操作、分优先级。
-```
-
-描述设为："Product Experience Reviewer: 用户体验审计"
-
-**重要**：Reviewer 作为系统 agent 运行，拥有自己的持久化记忆。调用时使用 `Agent` 工具，指定 agent 名称 `product-experience-reviewer`。
-
 ---
 
 ### 迭代完成后的收尾
@@ -275,10 +282,10 @@ COMPLETE / CONTINUE / BLOCKED
 
 ```
 第 {ITER}/{MAX_ITER} 轮完成
-  Planner:     docs/orch/plan.md + negotiation.md
+  Reviewer:    docs/orch/product-audit-report.md
+  Planner:     docs/orch/plan.md + negotiation.md + SPRINT.md 更新
   Generator:   docs/orch/gen_status.md
   Evaluator:   docs/orch/eval.md
-  Reviewer:    docs/orch/product-audit-report.md
 ```
 
 如果还有下一轮，继续。否则进入循环结束处理。
@@ -300,19 +307,20 @@ COMPLETE / CONTINUE / BLOCKED
 
 ```
 Orchestrator（当前 Agent 循环，固定 max_iter 轮）
-├── Planner   (Task subagent) → 读 SPRINT.md + pitfalls.md + product-audit-report.md → 写 plan.md + negotiation.md
-├── Generator (Task subagent) → 读 plan.md + pitfalls.md → 实现代码 + 跑测试 → 写 gen_status.md + 勾checkbox
-├── Evaluator (Task subagent) → 读 gen_status.md + pitfalls.md → 独立重跑验收 → 写 eval.md（信息性）
-└── Reviewer  (系统 agent)    → 读 product-audit-report.md(上轮) + negotiation.md(上轮) → 体验产品 → 写 product-audit-report.md
+│
+├── Step A: Reviewer  (系统 agent)    → 体验产品 → 写 product-audit-report.md
+├── Step B: Planner   (Task subagent) → 读 product-audit-report.md → 写 plan.md + negotiation.md + 追加 SPRINT.md
+├── Step C: Generator (Task subagent) → 读 plan.md → 实现 + 勾checkbox → 写 gen_status.md
+└── Step D: Evaluator (Task subagent) → 读 gen_status.md → 独立复验 → 写 eval.md（信息性）
 
 共享文件（7 个，隔离 subagent 之间的通信介质）：
-├── docs/plans/SPRINT.md               ← Sprint 合同（任务+验收）
-├── docs/plans/pitfalls.md             ← 陷阱知识库（所有 subagent 必读）
+├── docs/plans/SPRINT.md               ← Sprint 合同（全部四个 subagent 可读）
+├── docs/plans/pitfalls.md             ← 陷阱知识库（全部四个 subagent 必读）
+├── docs/orch/product-audit-report.md  ← Reviewer → Planner（本轮）的审计
+├── docs/orch/negotiation.md           ← Planner → Reviewer（下轮）的协商回应
 ├── docs/orch/plan.md                  ← Planner → Generator 的合同
 ├── docs/orch/gen_status.md            ← Generator → Evaluator 的交接
-├── docs/orch/eval.md                  ← Evaluator → Planner(下轮) 的反馈
-├── docs/orch/product-audit-report.md  ← Reviewer → Planner(下轮) 的审计
-└── docs/orch/negotiation.md           ← Planner → Reviewer(下轮) 的协商
+└── docs/orch/eval.md                  ← Evaluator → Planner（下轮）的反馈
 ```
 
-四个 subagent 之间无上下文共享，只通过上述文件交互。pitfalls.md 是贯穿所有角色的共享知识。negotiation.md 和 product-audit-report.md 构成"产品方 ↔ 体验官"的协商闭环。
+四个 subagent 之间无上下文共享，只通过上述文件交互。pitfalls.md 是贯穿所有角色的共享知识。negotiation.md 和 product-audit-report.md 构成"体验官 → 产品方 → 体验官"的协商闭环。

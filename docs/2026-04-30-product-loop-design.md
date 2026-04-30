@@ -1,15 +1,15 @@
 # Product-Loop 设计文档
 
 **日期**: 2026-04-30
-**状态**: 待实现
+**状态**: 已实现
 
 ---
 
 ## 概述
 
-Product-Loop 是 multi-ralph 的增强版，在内部研发循环（Planner → Generator → Evaluator）外层加入独立的 Product Experience Reviewer agent，形成"产品方研发 → 体验官审计 → 产品方改进"的持续迭代闭环。
+Product-Loop 是 multi-ralph 的增强版，在内部研发循环外层加入独立的 Product Experience Reviewer agent。每轮**体验官先审计产品**，然后研发团队（Planner → Generator → Evaluator）根据审计报告拆解 Sprint 并实现，形成"体验官挑刺 → 产品方响应"的持续迭代闭环。
 
-核心隐喻：**产品方是内部研发团队，体验官是挑剔的外部用户。双方通过结构化文档协商，不共享上下文。**
+核心隐喻：**Reviewer 是挑剔的外部体验官，P/G/E 是内部研发团队。体验官先挑刺，研发团队再决定怎么改。双方通过结构化文档协商，不共享上下文。**
 
 ---
 
