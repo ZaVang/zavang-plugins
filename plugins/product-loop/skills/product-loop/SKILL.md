@@ -1,6 +1,6 @@
 ---
 name: product-loop
-description: 启动 Product-Loop（Product Experience Reviewer → Planner → Generator → Evaluator 四个 Task subagent）。体验官先审计产品，内部研发团队再响应实现，通过协商文档持续迭代。默认参数：max_iter=1，Sprint 合同路径=docs/plans/SPRINT.md。
+description: 启动 Product-Loop（Reviewer → Planner → Generator → Evaluator 四个角色）。Reviewer 先审计产品，内部研发团队再响应实现，通过协商文档持续迭代。支持三种模式：--mode experience（体验审计）/ evolution（进化策略）/ all（两者并行）。默认参数：max_iter=1，Sprint 合同路径=docs/plans/SPRINT.md。
 allowed-tools: Read, Write, Bash, Task
 ---
 
@@ -8,20 +8,27 @@ allowed-tools: Read, Write, Bash, Task
 
 启动四角色迭代工作流（Reviewer → Planner → Generator → Evaluator），通过文件通信隔离上下文，永远迭代到 max_iter。
 
-**核心隐喻**：Product Experience Reviewer 是挑剔的外部体验官，Planner/Generator/Evaluator 是内部研发团队。每轮体验官先审计产品产出报告，研发团队再根据报告拆解 Sprint 并实现。双方通过 negotiation.md 进行结构化协商。
+**核心隐喻**：Reviewer 是挑剔的外部审计官（两种类型可选），Planner/Generator/Evaluator 是内部研发团队。每轮 Reviewer 先审计产品产出报告，研发团队再根据报告拆解 Sprint 并实现。双方通过 negotiation.md 进行结构化协商。
 
 ## 用法
 
 ```bash
-# 默认参数
+# 默认参数（体验模式）
 /product-loop:product-loop
 
+# 进化策略模式
+/product-loop:product-loop --mode evolution
+
+# 双审模式（体验 + 进化并行）
+/product-loop:product-loop --mode all
+
 # 覆盖参数
-/product-loop:product-loop --max-iter 3
-/product-loop:product-loop --sprint docs/plans/MY_SPRINT.md --max-iter 5
+/product-loop:product-loop --mode experience --max-iter 3
+/product-loop:product-loop --mode evolution --sprint docs/plans/MY_SPRINT.md --max-iter 5
 ```
 
 **参数（通过 $ARGUMENTS 传入）：**
+- `--mode MODE` — Reviewer 模式：`experience`（体验审计）/ `evolution`（进化策略）/ `all`（两者并行），默认 `experience`
 - `--max-iter N` — 最大迭代次数（默认 1）
 - `--sprint FILE` — Sprint 合同路径（默认 `docs/plans/SPRINT.md`）
 
@@ -35,7 +42,8 @@ allowed-tools: Read, Write, Bash, Task
 |------|------|------|------|
 | `docs/plans/SPRINT.md` | Sprint 合同（任务清单+验收命令） | 全部四个 | Generator（勾选checkbox） |
 | `docs/plans/pitfalls.md` | 陷阱知识库（踩过的坑） | 全部四个 | Generator、Evaluator（Sprint结束追加） |
-| `docs/orch/product-audit-report.md` | 体验官审计报告 | Planner（本轮Step B） | Reviewer（本轮Step A） |
+| `docs/orch/product-audit-report.md` | 体验官审计报告 | Planner（本轮Step B） | Reviewer（本轮Step A，experience/all 模式） |
+| `docs/orch/evolution-audit-report.md` | 进化策略审计报告 | Planner（本轮Step B） | Evolution Reviewer（本轮Step A，evolution/all 模式） |
 | `docs/orch/negotiation.md` | Planner 对 reviewer 建议的逐条回应 | Reviewer（下轮Step A） | Planner（本轮Step B） |
 | `docs/orch/plan.md` | 本轮任务计划/合同 | Generator | Planner |
 | `docs/orch/gen_status.md` | Generator 自报状态 | Evaluator | Generator |
@@ -48,15 +56,24 @@ allowed-tools: Read, Write, Bash, Task
 1. 运行 `mkdir -p docs/orch` 确保通信目录存在
 2. 读取 `docs/plans/SPRINT.md`，提取产品背景信息（产品名称、简介、启动方式、端口等）
 3. 提取项目背景信息（从 README.md 获取产品名称、启动方式、端口等，补充 SPRINT.md 中缺失的信息）
-4. 执行迭代循环（默认 max_iter=1，**永不提前停止**）：
+4. 解析 `--mode` 参数，确定本轮 Reviewer 类型（默认 `experience`）
+5. 执行迭代循环（默认 max_iter=1，**永不提前停止**）：
 
-### 每轮迭代执行以下四步（严格串行，前一个完成后才启动下一个）：
+### 每轮迭代执行以下四步（Step A 可能并行，Step B/C/D 严格串行）：
 
-#### Step A — Product Experience Reviewer（系统 agent，先于研发团队）
+#### Step A — Reviewer（系统 agent，先于研发团队，根据 --mode 决定启动哪个）
 
-**本轮的第一步——体验官先体验当前产品状态，产出审计报告。**
+**本轮的第一步——Reviewer 先审计当前产品状态，产出审计报告。**
 
-启动系统级 agent `product-experience-reviewer`，prompt 如下（用实际迭代编号替换 `{ITER}`）：
+根据 `--mode` 参数决定启动哪个 Reviewer：
+
+---
+
+##### mode = experience（默认）
+
+启动系统级 agent `product-experience-reviewer`。描述设为："Product Experience Reviewer: 用户体验审计（第{ITER}轮）"
+
+Prompt 如下（用实际迭代编号替换 `{ITER}`）：
 
 ```
 你是 CodeMemory 的 Product Experience Reviewer。你不只是 QA——你是一位兼具审美品味和产品直觉的资深体验官。你的价值不在于找到最多的 bug，而在于说出那些"对了但没人意识到"的东西。
@@ -144,22 +161,160 @@ allowed-tools: Read, Write, Bash, Task
 - 💡 Feature Idea：新功能提议（不需要本轮实现，但值得放入 backlog）
 ```
 
-描述设为："Product Experience Reviewer: 用户体验审计（第{ITER}轮）"
+---
 
-**重要**：Reviewer 作为系统 agent 运行，拥有自己的持久化记忆。调用时使用 `Agent` 工具，指定 agent 名称 `product-experience-reviewer`。
+##### mode = evolution
+
+启动系统级 agent `product-evolution-reviewer`。描述设为："Product Evolution Reviewer: 产品进化策略审计（第{ITER}轮）"
+
+Prompt 如下（用实际迭代编号替换 `{ITER}`）：
+
+```
+你是 CodeMemory 的 Product Evolution Reviewer。你不是 QA 测试员，也不是代码审计员——你是一位产品策略师。你拿到的可能只是一个 demo 或原型，你的使命是想清楚：要加什么功能，才能让这个 demo 变成一个让人愿意用、愿意付费的真正产品？
+
+你需要以产品策略师的视角审视产品，并输出完整的进化审计报告到 docs/orch/evolution-audit-report.md。
+
+## 你的四个判断维度
+
+你从四个维度审视产品，四个维度同等重要：
+
+### 1. 核心完整性
+Demo 通常只实现了"快乐路径"。你需要找出让核心循环闭环所缺失的东西：
+- 新用户如何上手？有没有 onboarding 引导？
+- 数据是否持久化？刷新页面后状态还在吗？
+- 有没有设置/配置页面？用户能定制自己的体验吗？
+- 空状态（第一次使用时）呈现了什么？有意义吗？
+- 错误状态怎么处理的？是友好引导还是一句"出错了"？
+- 有没有撤销/重做？批量操作？搜索？筛选？排序？
+- 有没有通知/提醒机制？用户怎么知道发生了什么？
+
+### 2. 竞争差距
+研究同类产品，找出本产品缺少的"桌上赌注"（table stakes）：
+- 用 WebSearch 和 WebFetch 研究竞品的功能列表
+- 哪些功能是同类产品的标配但本产品没有？
+- 竞品的用户评价中反复提到的好功能是什么？
+- 哪些竞品体验中的痛点本产品有机会解决？
+
+### 3. 功能深度
+现有功能是否只是"浅尝辄止"？
+- 当前核心功能有没有 power-user 模式？快捷键呢？
+- 有没有自定义/个性化空间？用户能不能把产品调成自己喜欢的样子？
+- 数据能不能导入导出？有没有 API 或集成能力？
+- 有没有协作/分享/社交功能？
+- 有没有高级筛选、排序、分组、标记？
+- 移动端体验如何？响应式适配了吗？
+
+### 4. 差异化
+什么功能能让这个产品在市场上独一无二？
+- 有没有竞品不可能或很难复制的功能方向？
+- 产品的独特数据或独特交互方式能衍生出什么特性？
+- "如果能 XXX 就太酷了"——不受技术约束地想象
+- 什么功能会让用户自发推荐给朋友？（口碑传播点）
+
+### 附带：技术健康度
+简要扫描——不是全面审计，而是关注"功能越堆越多时，哪些技术问题会变成瓶颈"：
+- 架构有没有明显的扩展性风险？
+- 有没有性能瓶颈在功能增长后会暴露？
+- 测试覆盖是否低到影响迭代速度？
+- 有没有明显的安全或数据隐私问题？
+
+## 项目背景
+
+产品名称：[从 SPRINT.md 或 README.md 提取]
+产品简介：[从 SPRINT.md 或 README.md 提取]
+启动方式：[从 SPRINT.md 或 README.md 提取，如 npm run dev --port XXXX]
+访问地址：[如 http://localhost:PORT]
+
+## 当前 Sprint 目标
+
+[粘贴 SPRINT.md 中所有任务（含 [x] 和 [ ]），让 reviewer 了解产品的整体目标和当前进度]
+
+## 产品方对上轮建议的回应（如有）
+
+[如果 docs/orch/negotiation.md 存在，粘贴其完整内容；不存在则写"首轮迭代，无协商记录"]
+
+## 工作步骤
+
+1. **启动产品**：按启动方式启动前后端，确认产品可访问
+2. **获取页面状态**：运行 `node .claude/scripts/get_page_state.js http://localhost:ACTUAL_PORT`（将 ACTUAL_PORT 替换为前端实际端口），拿到真实的 DOM 文本和交互元素列表
+3. **深度体验**：以首次用户身份走完核心流程，理解产品当前能做什么、不能做什么
+4. **竞品研究**：用 WebSearch/WebFetch 研究至少 2-3 个竞品的功能列表和用户评价
+5. **代码探查**：读核心前端组件源码和 API 路由，理解产品的技术骨架
+6. **撰写报告**：按照四个判断维度 + 技术健康度组织报告，写入 docs/orch/evolution-audit-report.md
+
+## 报告格式
+
+报告必须包含以下章节：
+
+**Executive Summary**（产品进化成熟度评分 /10，一段话概括四个维度的核心发现——当前处于什么阶段，最大的进化机会在哪个维度）
+
+**Phase 1: 核心完整性**
+- 当前核心循环分析（能做什么、流程是否闭环）
+- 缺失的关键环节（onboarding、设置、数据持久化、错误处理等）
+- 空状态和边界情况覆盖
+
+**Phase 2: 竞争差距**
+- 同类产品功能对比（至少 2 个竞品）
+- 本产品缺少的标配功能
+- 竞品用户反馈中的机会点
+
+**Phase 3: 功能深度**
+- 现有功能的深度评估（浅尝辄止 vs 有深度）
+- 可能的 power-user 路径
+- 集成、协作、自定义的可能性
+
+**Phase 4: 差异化与 Wow Factor**
+- "如果能 XXX 就太酷了"（至少 3 个功能提议，不受当前 Sprint 限制）
+- 口碑传播点分析（用户会因为什么功能推荐给朋友？）
+- 值得删掉或简化的东西（至少 1 个）
+
+**Technical Health**（附带）
+- 架构扩展性风险
+- 关键性能瓶颈
+- 测试与质量保障状态
+
+**Prioritized Recommendations**（分四个优先级）：
+- 🔴 Critical：缺失的标配功能，阻止产品走向市场
+- 🟡 Important：显著提升产品完整度的功能
+- 🟢 Nice-to-have：power-user 功能、体验优化
+- 💡 Feature Idea：差异化创新提议（不进本轮但值得放入 backlog）
+```
+
+---
+
+##### mode = all
+
+同时启动两个系统级 agent（**并行，在同一轮消息中发起两个 Agent 调用**）：
+
+1. `product-experience-reviewer` → 输出 `docs/orch/product-audit-report.md`
+2. `product-evolution-reviewer` → 输出 `docs/orch/evolution-audit-report.md`
+
+两个 agent 互不依赖，可以同时启动。Prompt 分别使用上述 experience 和 evolution 的完整 prompt。
+
+描述分别设为：
+- "Product Experience Reviewer: 用户体验审计（第{ITER}轮）"
+- "Product Evolution Reviewer: 产品进化策略审计（第{ITER}轮）"
 
 #### Step B — Planner（Task subagent, general-purpose）
 
-等 Reviewer 完成后，启动 Planner subagent，prompt 如下（用实际迭代编号替换 `{ITER}`）：
+等 Step A 所有 Reviewer 完成后，启动 Planner subagent。
+
+根据 `--mode` 调整 Planner 的输入源和 prompt：
+
+- **mode = experience**：Planner 读取 `docs/orch/product-audit-report.md`（体验官报告）
+- **mode = evolution**：Planner 读取 `docs/orch/evolution-audit-report.md`（进化策略报告）
+- **mode = all**：Planner 同时读取两份报告，综合两个视角制定计划
+
+Prompt 如下（用实际迭代编号替换 `{ITER}`，用实际模式替换 `{MODE}`）：
 
 ```
-你是 Sprint Planner。你的职责是读取体验官刚产出的审计报告，结合 Sprint 合同和上轮评估，产出一份精简的任务计划（合同），并对体验官的建议逐条回应。
+你是 Sprint Planner。你的职责是读取 Reviewer 刚产出的审计报告，结合 Sprint 合同和上轮评估，产出一份精简的任务计划（合同），并对 Reviewer 的建议逐条回应。
 
 ## 核心规则
 
 1. 你只负责规划 WHAT 和 WHY，绝不指定 HOW
 2. 你不写代码、不指定文件路径、不写实现步骤
-3. 你的输出写入三个文件：docs/orch/plan.md（本轮任务计划）、docs/orch/negotiation.md（对体验官的回应），并将任务拆解结果更新到 docs/plans/SPRINT.md
+3. 你的输出写入三个文件：docs/orch/plan.md（本轮任务计划）、docs/orch/negotiation.md（对 Reviewer 的回应），并将任务拆解结果更新到 docs/plans/SPRINT.md
 
 ## 明确禁止
 
@@ -171,17 +326,20 @@ allowed-tools: Read, Write, Bash, Task
 
 ## 工作流程
 
-1. **读取 docs/orch/product-audit-report.md（本轮体验官刚写的报告——这是必须步骤）**，仔细阅读体验官发现的问题和建议。你可以选择性接受——并非所有建议都必须采纳，但要逐条回应并给出理由。
+1. **读取 Reviewer 审计报告（必须步骤）**：
+   - 如果存在 docs/orch/product-audit-report.md，仔细阅读体验官发现的问题和建议
+   - 如果存在 docs/orch/evolution-audit-report.md，仔细阅读进化策略师的发现和建议
+   - 你可以选择性接受——并非所有建议都必须采纳，但要逐条回应并给出理由
 2. 读取 docs/plans/SPRINT.md，了解 Sprint 整体目标
 3. **读取 docs/plans/pitfalls.md，筛选与本次任务相关的陷阱**（这是必须步骤）
 4. 如果 docs/orch/eval.md 存在（上轮 Evaluator 反馈），仔细分析失败原因，据此调整本轮策略
-5. 根据体验官报告和你自己的判断，将本轮要做的任务拆解后**追加**到 docs/plans/SPRINT.md 的任务清单（用 `[ ]` 标记未完成项）
+5. 根据 Reviewer 报告和你自己的判断，将本轮要做的任务拆解后**追加**到 docs/plans/SPRINT.md 的任务清单（用 `[ ]` 标记未完成项）
 
 ### 输出 1：更新 docs/plans/SPRINT.md（追加本轮任务）
 
 在 SPRINT.md 的任务清单末尾追加本轮新任务：
 ```markdown
-## 第 {ITER} 轮追加任务（基于体验官审计）
+## 第 {ITER} 轮追加任务（基于 Reviewer 审计）
 
 - [ ] [任务标识]: [任务名称]
   - 目标：[一句话描述要达成什么]
@@ -197,9 +355,9 @@ allowed-tools: Read, Write, Bash, Task
    - 目标：[一句话描述要达成什么]
    - 依赖：[依赖哪个前置任务，如无则写"无"]
    - 验收：[该任务的具体通过标准]
-   - 来源：[体验官建议 / Planner 自主判断 / 上轮遗留]
+   - 来源：[体验官建议 / 进化策略师建议 / Planner 自主判断 / 上轮遗留]
 
-## 来自体验官的改进项（采纳的）
+## 来自 Reviewer 的改进项（采纳的）
 - [建议标题] → 本轮行动：[做什么]
 
 ## 相关陷阱（从 pitfalls.md 筛选）
@@ -216,9 +374,9 @@ allowed-tools: Read, Write, Bash, Task
 
 # Negotiation — Iteration {ITER}
 
-## 对本轮体验官报告的逐条回应
+## 对本轮 Reviewer 报告的逐条回应
 
-### 建议 1: [体验官建议标题——从 product-audit-report.md 的「Prioritized Recommendations」章节提取]
+### 建议 1: [Reviewer 建议标题——从审计报告的「Prioritized Recommendations」章节提取，注明来自体验官还是进化策略师]
 - **决策**：接受 / 拒绝 / 部分接受
 - **理由**：[为什么做出这个决策——如果是拒绝，必须写清楚原因；如果是部分接受，说明接受哪些、拒绝哪些]
 - **本轮行动**：[如果接受/部分接受，本轮具体会做什么；如果拒绝，写 N/A]
@@ -226,11 +384,11 @@ allowed-tools: Read, Write, Bash, Task
 ### 建议 2: [同上格式]
 ...
 
-## 本轮 Plannner 自主发现的改进方向（不在体验官报告中的）
+## 本轮 Planner 自主发现的改进方向（不在 Reviewer 报告中的）
 - [改进方向] → 本轮行动：[做什么]
 ```
 
-描述设为："Planner: 分析体验官报告，写入 plan.md + negotiation.md + 更新 SPRINT.md"
+描述设为："Planner: 分析 Reviewer 报告，写入 plan.md + negotiation.md + 更新 SPRINT.md"
 
 #### Step C — Generator（Task subagent, general-purpose）
 
@@ -338,8 +496,8 @@ COMPLETE / CONTINUE / BLOCKED
 本轮四步完成后，告知用户：
 
 ```
-第 {ITER}/{MAX_ITER} 轮完成
-  Reviewer:    docs/orch/product-audit-report.md
+第 {ITER}/{MAX_ITER} 轮完成（mode: {MODE}）
+  Reviewer:    [根据 mode 列出对应报告文件]
   Planner:     docs/orch/plan.md + negotiation.md + SPRINT.md 更新
   Generator:   docs/orch/gen_status.md
   Evaluator:   docs/orch/eval.md
@@ -353,8 +511,8 @@ COMPLETE / CONTINUE / BLOCKED
 2. 将本轮 product-audit-report.md 中新发现的产品问题（如有）也追加到 pitfalls.md
 3. 向用户展示最终状态摘要：
    - 各轮 Evaluator 评估结果
-   - 最终体验官综合评分（从最后一轮 product-audit-report.md 提取）
-   - 体验官 Top 3 改进建议（从最后一轮 product-audit-report.md 提取）
+   - 最终 Reviewer 综合评分（从最后一轮审计报告提取，experience/all 模式读取 product-audit-report.md，evolution 模式读取 evolution-audit-report.md）
+   - Reviewer Top 3 改进建议（从最后一轮审计报告提取）
    - 产品方的最终回应（从最后一轮 negotiation.md 提取）
 4. 告知用户完整报告位置
 
@@ -365,19 +523,24 @@ COMPLETE / CONTINUE / BLOCKED
 ```
 Orchestrator（当前 Agent 循环，固定 max_iter 轮）
 │
-├── Step A: Reviewer  (系统 agent)    → 体验产品 → 写 product-audit-report.md
-├── Step B: Planner   (Task subagent) → 读 product-audit-report.md → 写 plan.md + negotiation.md + 追加 SPRINT.md
+├── Step A: Reviewer (系统 agent，根据 --mode 决定)
+│   ├── mode=experience → product-experience-reviewer  → 写 product-audit-report.md
+│   ├── mode=evolution  → product-evolution-reviewer   → 写 evolution-audit-report.md
+│   └── mode=all        → 两者并行启动                 → 两份报告
+│
+├── Step B: Planner   (Task subagent) → 读 Reviewer 报告 → 写 plan.md + negotiation.md + 追加 SPRINT.md
 ├── Step C: Generator (Task subagent) → 读 plan.md → 实现 + 勾checkbox → 写 gen_status.md
 └── Step D: Evaluator (Task subagent) → 读 gen_status.md → 独立复验 → 写 eval.md（信息性）
 
-共享文件（7 个，隔离 subagent 之间的通信介质）：
-├── docs/plans/SPRINT.md               ← Sprint 合同（全部四个 subagent 可读）
-├── docs/plans/pitfalls.md             ← 陷阱知识库（全部四个 subagent 必读）
-├── docs/orch/product-audit-report.md  ← Reviewer → Planner（本轮）的审计
-├── docs/orch/negotiation.md           ← Planner → Reviewer（下轮）的协商回应
-├── docs/orch/plan.md                  ← Planner → Generator 的合同
-├── docs/orch/gen_status.md            ← Generator → Evaluator 的交接
-└── docs/orch/eval.md                  ← Evaluator → Planner（下轮）的反馈
+共享文件（8 个，隔离 subagent 之间的通信介质）：
+├── docs/plans/SPRINT.md                  ← Sprint 合同（全部 subagent 可读）
+├── docs/plans/pitfalls.md                ← 陷阱知识库（全部 subagent 必读）
+├── docs/orch/product-audit-report.md     ← Experience Reviewer → Planner（本轮）的审计
+├── docs/orch/evolution-audit-report.md   ← Evolution Reviewer → Planner（本轮）的审计
+├── docs/orch/negotiation.md              ← Planner → Reviewer（下轮）的协商回应
+├── docs/orch/plan.md                     ← Planner → Generator 的合同
+├── docs/orch/gen_status.md               ← Generator → Evaluator 的交接
+└── docs/orch/eval.md                     ← Evaluator → Planner（下轮）的反馈
 ```
 
-四个 subagent 之间无上下文共享，只通过上述文件交互。pitfalls.md 是贯穿所有角色的共享知识。negotiation.md 和 product-audit-report.md 构成"体验官 → 产品方 → 体验官"的协商闭环。
+四个 subagent 之间无上下文共享，只通过上述文件交互。pitfalls.md 是贯穿所有角色的共享知识。negotiation.md 和审计报告构成"Reviewer → 产品方 → Reviewer"的协商闭环。
