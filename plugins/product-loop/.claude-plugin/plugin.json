@@ -1,0 +1,11 @@
+{
+  "name": "product-loop",
+  "description": "Product-Loop: multi-ralph + Product Experience Reviewer. Internal dev trio (Planner/Generator/Evaluator) builds, then a picky external reviewer audits from user perspective. Always runs full iterations with structured negotiation between product team and reviewer.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ZaVang"
+  },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT"
+}
