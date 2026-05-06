@@ -4,14 +4,15 @@
 
 ## 什么是 Product-Loop？
 
-Product-Loop 在内部研发循环外层加入独立的 Reviewer，Reviewer 先审计，研发团队再响应。支持三种 Reviewer 模式：
+Product-Loop 在内部研发循环外层加入独立的 Reviewer，Reviewer 先审计，研发团队再响应。支持四种 Reviewer 模式：
 
 ```
 Orchestrator（你当前的 Claude 会话）
  ├── Reviewer  → 审计产品 → 写审计报告（--mode 决定类型）
- │   ├── experience: Product Experience Reviewer（体验官）
- │   ├── evolution:  Product Evolution Reviewer（进化策略师）
- │   └── all:        两者并行
+ │   ├── experience:    Product Experience Reviewer（体验官）
+ │   ├── evolution:     Product Evolution Reviewer（进化策略师）
+ │   ├── research:      Product Research Reviewer（研究员）
+ │   └── all:           三者并行
  ├── Planner   → 读审计报告 → 逐条回应 + 拆解 Sprint 任务
  ├── Generator → 读计划 → 自主实现 → 勾 checkbox → 写状态报告
  └── Evaluator → 独立重跑验收命令 → 写评估报告（信息性）
@@ -19,9 +20,10 @@ Orchestrator（你当前的 Claude 会话）
 
 四个 subagent **互不共享上下文**，只通过文件通信。Reviewer 与产品方通过 negotiation.md 进行结构化协商。
 
-**两种 Reviewer**：
+**三种 Reviewer**：
 - **Product Experience Reviewer**（体验官）：挑剔的外部体验者，从功能体验、审美品味、产品想象力审视产品
 - **Product Evolution Reviewer**（进化策略师）：产品策略师，从核心完整性、竞争差距、功能深度、差异化提出功能进化方案
+- **Product Research Reviewer**（研究员）：设计研究员，从核心假设质疑、相邻领域研究、逻辑完备性、替代设计提案提出更好的设计方向
 
 ---
 
@@ -60,6 +62,10 @@ npm run lint
 
 通过 `/agents` 创建。evolution / all 模式需要。
 
+### 必须存在（research / all 模式）：系统级 agent `product-research-reviewer`
+
+通过 `/agents` 创建。research / all 模式需要。
+
 ### 建议存在：`docs/plans/pitfalls.md`
 
 初建可留空，后续自动追加。
@@ -75,12 +81,16 @@ npm run lint
 # 进化策略模式（专注功能进化）
 /product-loop:product-loop --mode evolution
 
-# 双审模式（体验 + 进化并行）
+# 设计研究模式（专注底层设计研究）
+/product-loop:product-loop --mode research
+
+# 三审模式（体验 + 进化 + 研究并行）
 /product-loop:product-loop --mode all
 
 # 可选参数组合
 /product-loop:product-loop --mode experience --max-iter 3
 /product-loop:product-loop --mode evolution --sprint docs/plans/MY_SPRINT.md --max-iter 5
+/product-loop:product-loop --mode research --max-iter 2
 ```
 
 ---
@@ -90,7 +100,7 @@ npm run lint
 | | multi-ralph | product-loop |
 |---|---|---|
 | 角色数 | 3（P/G/E） | 4（R/P/G/E） |
-| Reviewer 类型 | 无 | 体验官 / 进化策略师 / 两者并行 |
+| Reviewer 类型 | 无 | 体验官 / 进化策略师 / 研究员 / 三者并行 |
 | 第一步 | Planner 读 Sprint | Reviewer 审计产品 |
 | 停止条件 | Evaluator COMPLETE 即停 | 永远跑满 max_iter |
 | 默认 max_iter | 2 | 1 |
@@ -108,6 +118,7 @@ npm run lint
 | `docs/plans/pitfalls.md` | G + E（追加） | R, P, G, E | 陷阱知识库 |
 | `docs/orch/product-audit-report.md` | Experience Reviewer（Step A） | Planner（Step B） | 体验官审计报告 |
 | `docs/orch/evolution-audit-report.md` | Evolution Reviewer（Step A） | Planner（Step B） | 进化策略审计报告 |
+| `docs/orch/research-audit-report.md` | Research Reviewer（Step A） | Planner（Step B） | 设计研究报告 |
 | `docs/orch/negotiation.md` | Planner（Step B） | Reviewer（下轮 Step A） | 产品方逐条回应 |
 | `docs/orch/plan.md` | Planner（Step B） | Generator（Step C） | 本轮任务计划 |
 | `docs/orch/gen_status.md` | Generator（Step C） | Evaluator（Step D） | 实现结果自报 |
