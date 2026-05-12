@@ -19,10 +19,13 @@ Usage:
 
 import os
 import sys
+import re
 import json
 import time
 import imaplib
 import email
+import argparse
+from datetime import datetime
 from email.header import decode_header
 from email.utils import parseaddr
 
@@ -96,7 +99,6 @@ def extract_body(msg):
 
 
 def strip_html(text):
-    import re
     text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
     text = re.sub(r"<[^>]+>", "", text)
     text = re.sub(r"&nbsp;", " ", text)
@@ -152,7 +154,10 @@ def cmd_list(server, args):
     limit = getattr(args, "limit", 10)
     json_mode = getattr(args, "json", False)
 
-    server.select(folder, readonly=False)
+    status, _ = server.select(folder, readonly=False)
+    if status != "OK":
+        print(f"Folder '{folder}' not found or not selectable.", file=sys.stderr)
+        sys.exit(1)
 
     status, data = server.search(None, "ALL")
     if status != "OK":
@@ -200,7 +205,7 @@ def cmd_list(server, args):
 
 
 def cmd_search(server, args):
-    query = args.query
+    query = args.query.replace('"', '')
     json_mode = getattr(args, "json", False)
 
     server.select("INBOX", readonly=False)
@@ -311,14 +316,12 @@ def cmd_monitor(server, args):
                         subject = decode_mime_header(header_msg.get("Subject", "(no subject)"))
 
                         if json_mode:
-                            from datetime import datetime
                             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                             print(json.dumps({
                                 "time": now, "uid": uid.decode(),
                                 "from": mail_from, "subject": subject
                             }, ensure_ascii=False))
                         else:
-                            from datetime import datetime
                             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                             print(f"[{now}] New: \"{subject[:50]}\" from {mail_from}")
 
@@ -333,16 +336,14 @@ def cmd_monitor(server, args):
                     status, data = server.search(None, "ALL")
                     if status == "OK":
                         seen_uids = set(data[0].split())
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[Monitor] Reconnect failed: {e}", file=sys.stderr)
     except KeyboardInterrupt:
         if not json_mode:
             print("\n[Monitor] Stopped.")
 
 
 def main():
-    import argparse
-
     parser = argparse.ArgumentParser(description="Check/read emails via IMAP")
     sub = parser.add_subparsers(dest="command")
 
