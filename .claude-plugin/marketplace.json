@@ -73,6 +73,17 @@
       },
       "license": "MIT",
       "category": "development"
+    },
+    {
+      "name": "email-sender",
+      "source": "./plugins/email-sender",
+      "description": "Send emails via SMTP from within Claude Code — the AI's output channel to the outside world",
+      "version": "1.0.0",
+      "author": {
+        "name": "ZaVang"
+      },
+      "license": "MIT",
+      "category": "productivity"
     }
   ]
 }

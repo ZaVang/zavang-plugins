@@ -1,0 +1,10 @@
+{
+  "name": "email-sender",
+  "description": "Send emails via SMTP from within Claude Code — gives AI an output channel to the outside world",
+  "version": "1.0.0",
+  "author": { "name": "ZaVang" },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT",
+  "keywords": ["email", "smtp", "communication", "output"]
+}
