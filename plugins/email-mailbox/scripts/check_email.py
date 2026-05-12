@@ -112,11 +112,20 @@ def strip_html(text):
     return text.strip()
 
 
+def send_imap_id(server):
+    """Send IMAP ID command required by 163.com/126.com after login."""
+    imaplib.Commands["ID"] = "AUTH"
+    args = ("name", "email-mailbox", "version", "1.2.0", "vendor", "zavang-plugins",
+            "contact", "email-mailbox@zavang")
+    server._simple_command("ID", '("' + '" "'.join(args) + '")')
+
+
 def connect_imap():
     imap_host, imap_port, user, smtp_password, imap_password = get_config()
     try:
         server = imaplib.IMAP4_SSL(imap_host, imap_port)
         server.login(user, imap_password)
+        send_imap_id(server)
         return server
     except imaplib.IMAP4.error as e:
         msg = str(e)

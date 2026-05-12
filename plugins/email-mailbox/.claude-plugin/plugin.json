@@ -1,7 +1,7 @@
 {
-  "name": "email-sender",
-  "description": "Send and receive emails via SMTP/IMAP from within Claude Code — two-way communication channel to the outside world",
-  "version": "1.1.0",
+  "name": "email-mailbox",
+  "description": "Two-way email mailbox for Claude Code — send via SMTP, receive/read/search/monitor via IMAP",
+  "version": "1.2.0",
   "author": { "name": "ZaVang" },
   "homepage": "https://github.com/ZaVang/zavang-plugins",
   "repository": "https://github.com/ZaVang/zavang-plugins",
