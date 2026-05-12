@@ -9,6 +9,7 @@ Required env vars (shared with send_email.py):
 Optional env vars:
   EMAIL_IMAP_HOST  - Explicit IMAP server (overrides auto-derivation)
   EMAIL_IMAP_PORT  - IMAP port (default: 993)
+  EMAIL_IMAP_PASS  - IMAP password (falls back to EMAIL_PASS; for providers with separate IMAP/SMTP credentials like 163.com)
 
 Usage:
   python check_email.py list [--limit N] [--folder INBOX] [--json]
@@ -52,7 +53,9 @@ def get_config():
 
     imap_port = int(os.environ.get("EMAIL_IMAP_PORT", "993"))
 
-    return imap_host, imap_port, user, password
+    imap_password = os.environ.get("EMAIL_IMAP_PASS", password)
+
+    return imap_host, imap_port, user, password, imap_password
 
 
 def decode_mime_header(value):
@@ -110,10 +113,10 @@ def strip_html(text):
 
 
 def connect_imap():
-    imap_host, imap_port, user, password = get_config()
+    imap_host, imap_port, user, smtp_password, imap_password = get_config()
     try:
         server = imaplib.IMAP4_SSL(imap_host, imap_port)
-        server.login(user, password)
+        server.login(user, imap_password)
         return server
     except imaplib.IMAP4.error as e:
         msg = str(e)

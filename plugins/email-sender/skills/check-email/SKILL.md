@@ -24,6 +24,7 @@ Optional:
 |----------|---------|-------------|
 | `EMAIL_IMAP_HOST` | derived from `EMAIL_SMTP_HOST` | Explicit IMAP server override |
 | `EMAIL_IMAP_PORT` | `993` | IMAP port |
+| `EMAIL_IMAP_PASS` | `EMAIL_PASS` | IMAP password override (for providers with separate IMAP/SMTP credentials, e.g. 163.com) |
 
 ## Usage
 
