@@ -1,0 +1,11 @@
+{
+  "name": "harnesslib",
+  "description": "Generate a production-ready agent harness module in any Python project. A reusable Session/Harness/Sandbox/Orchestration framework inspired by Anthropic's Managed Agents — append-only session log, effect-loop harness, idempotent replay, crash resume, and multi-process-safe SQLite persistence.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ZaVang"
+  },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT"
+}
