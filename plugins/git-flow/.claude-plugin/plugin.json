@@ -1,0 +1,11 @@
+{
+  "name": "git-flow",
+  "description": "Per-repo git discipline for AI agents. Auto-injects an issue -> branch -> commit -> PR/MR protocol every session (works on both GitHub via gh and GitLab via glab, auto-detected), and installs hooks that block editing on main and block agent-initiated merges — so merging stays the human's call. Opt-in per repository.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ZaVang"
+  },
+  "homepage": "https://github.com/ZaVang/zavang-plugins",
+  "repository": "https://github.com/ZaVang/zavang-plugins",
+  "license": "MIT"
+}

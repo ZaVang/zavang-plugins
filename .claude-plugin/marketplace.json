@@ -53,6 +53,17 @@
       "category": "development"
     },
     {
+      "name": "git-flow",
+      "source": "./plugins/git-flow",
+      "description": "Per-repo git discipline for AI agents: auto-injects an issue -> branch -> commit -> PR/MR protocol every session (GitHub via gh / GitLab via glab, auto-detected), plus hooks that block editing on main and block agent merges so merging stays the human's call. Opt-in per repository.",
+      "version": "1.0.0",
+      "author": {
+        "name": "ZaVang"
+      },
+      "license": "MIT",
+      "category": "development"
+    },
+    {
       "name": "project-chronicle",
       "source": "./plugins/project-chronicle",
       "description": "Auto-generate a development log for your project. Run /chronicle at the end of each session to append a timestamped summary to docs/chronicle.md — capturing steps, tools, skills, and outcomes across multiple sessions.",
