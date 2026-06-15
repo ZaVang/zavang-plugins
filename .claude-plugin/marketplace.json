@@ -77,8 +77,8 @@
     {
       "name": "product-loop",
       "source": "./plugins/product-loop",
-      "description": "Product-Loop: multi-ralph + Product Experience Reviewer. Internal dev trio builds, picky external reviewer audits from user perspective, structured negotiation between both sides. Always runs full iterations.",
-      "version": "1.0.0",
+      "description": "Unified two-tier iteration engine: Reviewer -> Scout -> Planner -> Generator -> Evaluator. --tier1 toggles auto product-critique (on) vs human-written SPRINT as source (off = multi-ralph behavior); Scout grounds the code before planning; termination follows --tier1.",
+      "version": "2.0.0",
       "author": {
         "name": "ZaVang"
       },

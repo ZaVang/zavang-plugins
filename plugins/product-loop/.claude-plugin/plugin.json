@@ -1,7 +1,7 @@
 {
   "name": "product-loop",
-  "description": "Product-Loop: multi-ralph + Product Experience Reviewer. Internal dev trio (Planner/Generator/Evaluator) builds, then a picky external reviewer audits from user perspective. Always runs full iterations with structured negotiation between product team and reviewer.",
-  "version": "1.0.0",
+  "description": "Unified two-tier iteration engine: Reviewer -> Scout -> Planner -> Generator -> Evaluator. Tier 1 (Reviewer, --tier1 toggle) auto-critiques the product to generate requirements; turn it off and a human-written SPRINT is the source (multi-ralph behavior). Tier 2 always runs, with Scout grounding the code before planning. Termination follows --tier1: goal-driven when off, full-iterations when on.",
+  "version": "2.0.0",
   "author": {
     "name": "ZaVang"
   },
